@@ -38,19 +38,33 @@ a { color: inherit; }
   background: linear-gradient(160deg, #040a14 0%, #0b1a30 50%, #101f36 100%);
 }
 
+.hero-brain-logo {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: min(42vw, 280px);
+  height: auto;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  opacity: 0.12;
+  filter: grayscale(0.2) contrast(1.05);
+  pointer-events: none;
+  animation: brainLogoFloat 6s ease-in-out infinite;
+}
+
 .neural-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 0;
+  z-index: 1;
   pointer-events: none;
 }
 
 .hero-scan {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 2;
   pointer-events: none;
   background: linear-gradient(
     180deg,
@@ -65,7 +79,7 @@ a { color: inherit; }
 
 .home-hero-inner {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   text-align: center;
   padding: 88px 18px 40px;
   max-width: 640px;
@@ -287,8 +301,11 @@ a { color: inherit; }
 .leadership-section { background: var(--paper); }
 .leaders {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (min-width: 900px) {
+  .leaders { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 .leader {
   background: var(--white);
@@ -299,10 +316,16 @@ a { color: inherit; }
   transition: transform 0.4s var(--ease), border-color 0.25s ease, box-shadow 0.4s ease;
   transition-delay: calc(var(--d, 0) * 60ms);
 }
+.leader-tilt {
+  transform: rotate(-2.8deg);
+}
 .leader:hover {
   transform: translateY(-8px) scale(1.02);
   border-color: rgba(94, 200, 255, 0.45);
   box-shadow: 0 16px 36px rgba(10, 22, 40, 0.1);
+}
+.leader-tilt:hover {
+  transform: rotate(-2.8deg) translateY(-8px) scale(1.02);
 }
 .leader-mark {
   width: 46px;
@@ -460,6 +483,46 @@ a { color: inherit; }
 .cta-band .section-lead { margin: 0; }
 .cta-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
+.whatsapp-band {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px;
+  background: linear-gradient(135deg, #f3fff7, #fff);
+  border: 1px solid #cfead8;
+  border-radius: 16px;
+}
+.whatsapp-copy { max-width: 26rem; }
+.btn-whatsapp {
+  margin-top: 12px;
+  background: #128c7e;
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(18, 140, 126, 0.28);
+}
+.btn-whatsapp:hover { background: #0e7a6e; }
+.whatsapp-qr {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.84rem;
+  transition: transform 0.25s var(--ease);
+}
+.whatsapp-qr:hover { transform: translateY(-3px) scale(1.03); }
+.whatsapp-qr img {
+  width: 148px;
+  height: 148px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #d7e8de;
+  padding: 8px;
+}
+
 /* Footer */
 .site-footer {
   background: var(--ink);
@@ -514,6 +577,10 @@ a { color: inherit; }
 }
 @keyframes markSpin {
   to { transform: rotate(360deg); }
+}
+@keyframes brainLogoFloat {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.11; }
+  50% { transform: translate(-50%, -52%) scale(1.04); opacity: 0.16; }
 }
 
 @media (max-width: 860px) {

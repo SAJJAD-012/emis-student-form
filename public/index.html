@@ -24,12 +24,14 @@
         <a href="/form">الاستمارة</a>
         <a href="#about">عن المدرسة</a>
         <a href="#staff">الكادر</a>
+        <a href="#whatsapp">واتساب</a>
         <a href="/admin-login.html" class="site-nav-admin">الإدارة</a>
       </div>
     </div>
   </nav>
 
   <header class="home-hero">
+    <img class="hero-brain-logo" src="school-logo.png" alt="" aria-hidden="true" />
     <canvas id="neuralCanvas" class="neural-canvas" aria-hidden="true"></canvas>
     <div class="hero-scan" aria-hidden="true"></div>
     <div class="home-hero-inner">
@@ -90,7 +92,6 @@
         <div class="section-head reveal">
           <p class="section-kicker">القيادة</p>
           <h2>إدارة المدرسة</h2>
-          <p class="section-lead">المدير ثم المعاون ثم مسؤول EMIS.</p>
         </div>
         <div class="leaders">
           <article class="leader principal reveal" style="--d:0">
@@ -99,7 +100,7 @@
             <h3>رحيم واحد حمادي خلف الخرسة</h3>
             <p>الإشراف العام على العملية التربوية والإدارية.</p>
           </article>
-          <article class="leader reveal" style="--d:1">
+          <article class="leader leader-tilt reveal" style="--d:1">
             <div class="leader-mark">2</div>
             <p class="leader-role">المعاون</p>
             <h3>حاتم صاحب طالب خلف الخرسة</h3>
@@ -111,6 +112,12 @@
             <h3>سجاد علي فاخر مونس الربيعي</h3>
             <p>إدارة بيانات الطلبة والتحديث الإلكتروني.</p>
           </article>
+          <article class="leader reveal" style="--d:3">
+            <div class="leader-mark">4</div>
+            <p class="leader-role">رئيس اللجنة الامتحانية</p>
+            <h3>علي عبدالسادة عبد شناوة البهادلي</h3>
+            <p>إدارة وتنظيم اللجنة الامتحانية في المدرسة.</p>
+          </article>
         </div>
       </div>
     </section>
@@ -119,8 +126,7 @@
       <div class="section-inner">
         <div class="section-head reveal">
           <p class="section-kicker">الكادر</p>
-          <h2>مرتّب: القيادة → الرجال → السيدات</h2>
-          <p class="section-lead">ابحث بالاسم — القائمة منظمة ومتتابعة.</p>
+          <h2>أسرة تعليمية واحدة</h2>
         </div>
         <div class="staff-toolbar reveal">
           <input id="staffSearch" class="staff-search" type="search" placeholder="ابحث بالاسم..." autocomplete="off" />
@@ -142,6 +148,36 @@
             <a class="btn btn-primary" href="/form">فتح الاستمارة</a>
             <a class="btn btn-outline" href="/admin-login.html">سجل الطلبة</a>
           </div>
+        </div>
+
+        <div class="whatsapp-band reveal" id="whatsapp">
+          <div class="whatsapp-copy">
+            <p class="section-kicker">تواصل واتساب</p>
+            <h2>قناة المدرسة على واتساب</h2>
+            <p class="section-lead">انضم للقناة لمتابعة الإعلانات والتحديثات الرسمية.</p>
+            <a
+              class="btn btn-whatsapp"
+              href="https://chat.whatsapp.com/H7OeC7yEeFv4xl0lrJw3Wz"
+              target="_blank"
+              rel="noopener noreferrer"
+            >فتح رابط القناة</a>
+          </div>
+          <a
+            class="whatsapp-qr"
+            href="https://chat.whatsapp.com/H7OeC7yEeFv4xl0lrJw3Wz"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="امسح الباركود للانضمام"
+          >
+            <img
+              src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=https%3A%2F%2Fchat.whatsapp.com%2FH7OeC7yEeFv4xl0lrJw3Wz"
+              width="180"
+              height="180"
+              alt="باركود قناة واتساب مدرسة قطر"
+              loading="lazy"
+            />
+            <span>امسح للانضمام</span>
+          </a>
         </div>
       </div>
     </section>
