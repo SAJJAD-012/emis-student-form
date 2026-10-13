@@ -7,13 +7,14 @@ const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 const { buildDocumentsCollage } = require("./collage");
-const { saveStudentSubmission, listStudents, getStudentById, dataRoot, makeRequestId, ensureDirs } = require("./storage");
-const { restoreFromGitHub, syncStudentFiles } = require("./github-store");
+const { saveStudentSubmission, listStudents, getStudentById, deleteStudentById, dataRoot, makeRequestId, ensureDirs } = require("./storage");
+const { restoreFromGitHub, syncStudentFiles, deleteStudentFiles } = require("./github-store");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "qatar-emis-2026";
+const DELETE_CONFIRM_CODE = process.env.DELETE_CONFIRM_CODE || "1122";
 const ADMIN_COOKIE = "emis_admin";
 if (!BOT_TOKEN) {
   console.warn("⚠️  ضع TELEGRAM_BOT_TOKEN في ملف .env");
@@ -379,6 +380,32 @@ app.get("/api/students/:id", (req, res) => {
     res.json({ ok: true, student });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.delete("/api/students/:id", express.json(), async (req, res) => {
+  try {
+    const code = String(req.body?.confirmCode || "").trim();
+    if (code !== DELETE_CONFIRM_CODE) {
+      return res.status(403).json({ ok: false, error: "رمز التأكيد غير صحيح" });
+    }
+    const result = deleteStudentById(req.params.id);
+    if (!result.ok) {
+      return res.status(404).json({ ok: false, error: result.error || "تعذّر الحذف" });
+    }
+    try {
+      await deleteStudentFiles(dataRoot, result.removedPaths, result.id);
+    } catch (syncErr) {
+      console.error("فشل مزامنة الحذف مع GitHub:", syncErr.message);
+    }
+    res.json({
+      ok: true,
+      message: "تم حذف الاستمارة بنجاح",
+      id: result.id,
+      fullName: result.fullName,
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message || "حدث خطأ أثناء الحذف" });
   }
 });
 

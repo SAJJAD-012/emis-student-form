@@ -223,12 +223,78 @@ function getStudentById(id) {
   return JSON.parse(fs.readFileSync(abs, "utf8"));
 }
 
+function unlinkQuiet(abs) {
+  try {
+    if (abs && fs.existsSync(abs)) fs.unlinkSync(abs);
+  } catch (_) {}
+}
+
+/**
+ * حذف استمارة طالب من السجل والملفات المرتبطة
+ */
+function deleteStudentById(id) {
+  ensureDirs();
+  const key = String(id || "").trim();
+  if (!key) return { ok: false, error: "رقم الطلب مطلوب" };
+
+  const { students } = listStudents();
+  const summary = students.find((s) => s.id === key);
+  if (!summary) return { ok: false, error: "الاستمارة غير موجودة" };
+
+  let record = null;
+  if (summary.file) {
+    const absJson = path.join(dataRoot, summary.file);
+    if (fs.existsSync(absJson)) {
+      try {
+        record = JSON.parse(fs.readFileSync(absJson, "utf8"));
+      } catch (_) {}
+    }
+  }
+
+  const removedPaths = [];
+  const candidates = [
+    summary.file,
+    summary.photo,
+    summary.collage,
+    record?.photo,
+    record?.collage,
+  ].filter(Boolean);
+
+  for (const rel of [...new Set(candidates.map((p) => String(p).replace(/\\/g, "/")))]) {
+    unlinkQuiet(path.join(dataRoot, rel));
+    removedPaths.push(rel);
+  }
+
+  const registry = loadRegistry();
+  const grade = summary.grade;
+  const section = summary.section;
+  if (registry.grades?.[grade]?.[section]) {
+    registry.grades[grade][section] = registry.grades[grade][section].filter((s) => s.id !== key);
+    if (!registry.grades[grade][section].length) delete registry.grades[grade][section];
+    if (!Object.keys(registry.grades[grade] || {}).length) delete registry.grades[grade];
+  }
+  registry.total = Object.values(registry.grades || {}).reduce(
+    (sum, secs) => sum + Object.values(secs).reduce((a, arr) => a + arr.length, 0),
+    0
+  );
+  saveRegistry(registry);
+
+  return {
+    ok: true,
+    id: key,
+    fullName: summary.fullName || record?.fullName || "",
+    removedPaths,
+    syncedPaths: ["registry.json", ...removedPaths],
+  };
+}
+
 module.exports = {
   dataRoot,
   makeRequestId,
   saveStudentSubmission,
   listStudents,
   getStudentById,
+  deleteStudentById,
   loadRegistry,
   ensureDirs,
 };

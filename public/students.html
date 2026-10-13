@@ -58,6 +58,10 @@
       background: var(--accent-soft); color: #1e4ea8; padding: 8px 12px; border-radius: 9px;
     }
     .actions a.secondary { background: #eef8f2; color: #0f7a45; }
+    .actions button.danger {
+      background: #fdecea; color: #b42318;
+    }
+    .actions button.danger:hover { background: #f9d2ce; }
     .detail {
       display: none; grid-column: 1 / -1; margin-top: 4px;
       background: linear-gradient(180deg, #f7f9fc, #fff); border: 1px solid #e2e8f2;
@@ -134,7 +138,7 @@
         <input id="search" type="search" placeholder="بحث بالاسم أو الهاتف أو رقم البطاقة أو رقم الطلب" />
       </div>
       <div class="stats" id="stats">جاري التحميل...</div>
-      <div class="persist-note">السجل وصورة الطالب يُحفظان محلياً مع نسخة دائمة — لا تختفي بعد تحديث الموقع.</div>
+      <div class="persist-note">للحذف: اضغط «حذف» ثم أدخل رمز التأكيد <b>1122</b>. السجل محفوظ بنسخة دائمة.</div>
     </div>
     <div id="list"></div>
   </div>
@@ -252,9 +256,10 @@
                     <span>الحفظ: <b>${fmtDate(s.savedAt)}</b></span>
                   </div>
                   <div class="actions">
-                    <button type="button" data-id="${esc(s.id)}">عرض التفاصيل الكاملة</button>
+                    <button type="button" data-id="${esc(s.id)}" data-action="details">عرض التفاصيل</button>
                     ${s.photo ? `<a class="secondary" href="${esc(fileUrl(s.photo))}" target="_blank">صورة الطالب</a>` : ""}
                     ${s.collage ? `<a href="${esc(fileUrl(s.collage))}" target="_blank">المستمسكات</a>` : ""}
+                    <button type="button" class="danger" data-id="${esc(s.id)}" data-name="${esc(s.fullName || "")}" data-action="delete">حذف</button>
                   </div>
                 </div>
                 <div class="detail" id="detail-${esc(s.id)}"></div>
@@ -264,7 +269,7 @@
         </div>
       `).join("");
 
-      list.querySelectorAll("button[data-id]").forEach((btn) => {
+      list.querySelectorAll('button[data-action="details"]').forEach((btn) => {
         btn.addEventListener("click", async () => {
           const id = btn.dataset.id;
           const box = document.getElementById(`detail-${id}`);
@@ -337,6 +342,44 @@
               </div>
             </div>
           `;
+        });
+      });
+
+      list.querySelectorAll('button[data-action="delete"]').forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.id;
+          const name = btn.dataset.name || "الطالب";
+          const ok = window.confirm(`هل تريد حذف استمارة:\n${name}\nرقم الطلب: ${id}؟`);
+          if (!ok) return;
+          const confirmCode = window.prompt("أدخل رمز التأكيد للحذف:");
+          if (confirmCode == null) return;
+          btn.disabled = true;
+          try {
+            const res = await fetch(`/api/students/${encodeURIComponent(id)}`, {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ confirmCode: String(confirmCode).trim() }),
+            });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error || "فشل الحذف");
+            allStudents = allStudents.filter((s) => s.id !== id);
+            if (registry) {
+              registry.total = Math.max(0, (registry.total || 1) - 1);
+              Object.keys(registry.grades || {}).forEach((g) => {
+                Object.keys(registry.grades[g] || {}).forEach((sec) => {
+                  registry.grades[g][sec] = (registry.grades[g][sec] || []).filter((s) => s.id !== id);
+                  if (!registry.grades[g][sec].length) delete registry.grades[g][sec];
+                });
+                if (!Object.keys(registry.grades[g] || {}).length) delete registry.grades[g];
+              });
+            }
+            fillFilters();
+            render();
+            alert("تم حذف الاستمارة بنجاح");
+          } catch (err) {
+            alert(err.message || "تعذّر الحذف");
+            btn.disabled = false;
+          }
         });
       });
     }

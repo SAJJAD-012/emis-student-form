@@ -96,6 +96,46 @@ async function putFile(relPath, contentBuffer, message) {
   });
 }
 
+async function deleteFile(relPath, message) {
+  const sha = await getFileSha(relPath);
+  if (!sha) return false;
+  await gh(`/repos/${OWNER}/${REPO}/contents/${encodeRepoPath(relPath)}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: message || `EMIS delete — ${relPath}`,
+      sha,
+      branch: BRANCH,
+    }),
+  });
+  return true;
+}
+
+/**
+ * يحذف ملفات من النسخة الدائمة على GitHub ثم يحدّث registry.json
+ */
+async function deleteStudentFiles(dataRoot, relativePathsToDelete, requestId) {
+  if (!enabled()) return { ok: false, skipped: true };
+  const paths = [...new Set((relativePathsToDelete || []).filter(Boolean).map(toPosix))];
+  for (const rel of paths) {
+    if (rel === "registry.json") continue;
+    try {
+      await deleteFile(rel, `EMIS delete ${requestId || ""} — ${rel}`);
+    } catch (err) {
+      console.warn(`تعذّر حذف ${rel} من GitHub:`, err.message);
+    }
+  }
+  const registryAbs = path.join(dataRoot, "registry.json");
+  if (fs.existsSync(registryAbs)) {
+    await putFile(
+      "registry.json",
+      fs.readFileSync(registryAbs),
+      `EMIS registry after delete ${requestId || ""}`
+    );
+  }
+  return { ok: true };
+}
+
 async function ensureRepoReady() {
   if (!enabled()) return false;
   try {
@@ -171,5 +211,6 @@ module.exports = {
   enabled,
   restoreFromGitHub,
   syncStudentFiles,
+  deleteStudentFiles,
   walkFiles,
 };
