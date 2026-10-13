@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إعداد تيليجرام | EMIS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .setup-box {
+      max-width: 640px;
+      margin: 40px auto;
+      padding: 0 16px;
+    }
+    .setup-box .card {
+      padding: 28px;
+    }
+    .steps {
+      list-style: none;
+      counter-reset: s;
+      display: grid;
+      gap: 14px;
+      margin: 18px 0 22px;
+    }
+    .steps li {
+      counter-increment: s;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #f6f8fb;
+      border-radius: 12px;
+      padding: 14px;
+      border: 1px solid var(--border);
+    }
+    .steps li::before {
+      content: counter(s);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .chat-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .chat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+    }
+    .chat-item code {
+      background: #eef2f8;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      direction: ltr;
+    }
+    .copy-btn {
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #result {
+      margin-top: 16px;
+      min-height: 24px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header class="hero" style="padding-bottom: 36px">
+    <div class="hero-inner">
+      <h1 style="font-size: 1.8rem">إعداد استلام الرسائل على تيليجرام</h1>
+      <p class="hero-desc">اتبع الخطوات ثم انسخ معرف المحادثة إلى ملف .env</p>
+    </div>
+  </header>
+
+  <div class="setup-box">
+    <div class="card">
+      <h2>الخطوات</h2>
+      <ol class="steps">
+        <li>افتح تيليجرام وابحث عن البوت الذي أنشأته عبر BotFather.</li>
+        <li>أرسل للبوت رسالة: <strong>/start</strong></li>
+        <li>اضغط الزر أدناه لجلب معرف المحادثة (Chat ID).</li>
+        <li>انسخ الرقم وضعه في ملف <code>.env</code> أمام <code>TELEGRAM_CHAT_ID=</code> ثم أعد تشغيل السيرفر.</li>
+      </ol>
+
+      <button class="submit-btn" id="fetchBtn" type="button">جلب معرف المحادثة</button>
+      <div id="result"></div>
+      <div class="chat-list" id="chatList"></div>
+
+      <p style="margin-top: 22px">
+        <a href="/" style="color: var(--accent); font-weight: 700">العودة إلى الاستمارة</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const fetchBtn = document.getElementById("fetchBtn");
+    const result = document.getElementById("result");
+    const chatList = document.getElementById("chatList");
+
+    fetchBtn.addEventListener("click", async () => {
+      fetchBtn.disabled = true;
+      fetchBtn.textContent = "جاري البحث...";
+      result.textContent = "";
+      chatList.innerHTML = "";
+
+      try {
+        const res = await fetch("/api/chat-id");
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "فشل الجلب");
+
+        if (!data.chats.length) {
+          result.textContent = "لم يتم العثور على محادثات. أرسل /start للبوت ثم أعد المحاولة.";
+          return;
+        }
+
+        result.textContent = "اختر المعرف وانسخه إلى ملف .env:";
+        data.chats.forEach((chat) => {
+          const row = document.createElement("div");
+          row.className = "chat-item";
+          row.innerHTML = `
+            <div>
+              <div><strong>${chat.name || "بدون اسم"}</strong> ${chat.username ? "@" + chat.username : ""}</div>
+              <div style="margin-top:6px"><code>${chat.id}</code></div>
+            </div>
+            <button class="copy-btn" type="button">نسخ</button>
+          `;
+          row.querySelector("button").addEventListener("click", async () => {
+            await navigator.clipboard.writeText(String(chat.id));
+            row.querySelector("button").textContent = "تم!";
+          });
+          chatList.appendChild(row);
+        });
+      } catch (err) {
+        result.textContent = err.message;
+      } finally {
+        fetchBtn.disabled = false;
+        fetchBtn.textContent = "جلب معرف المحادثة";
+      }
+    });
+  </script>
+</body>
+</html>

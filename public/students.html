@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>سجل الطلبة | EMIS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .wrap { max-width: 980px; margin: -24px auto 48px; padding: 0 16px; position: relative; z-index: 1; }
+    .filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+    .filters select, .filters input {
+      font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); min-width: 160px;
+    }
+    .stats { color: var(--muted); margin-bottom: 14px; font-weight: 600; }
+    .grade-block { margin-bottom: 18px; }
+    .grade-title {
+      background: var(--navy); color: #fff; border-radius: 12px 12px 0 0;
+      padding: 12px 16px; font-weight: 800;
+    }
+    .section-title {
+      background: #e8eef8; color: var(--navy-mid); padding: 10px 16px; font-weight: 700; border: 1px solid var(--border); border-top: 0;
+    }
+    .student-row {
+      background: #fff; border: 1px solid var(--border); border-top: 0; padding: 14px 16px;
+      display: grid; gap: 6px;
+    }
+    .student-row strong { font-size: 1.02rem; }
+    .meta { color: var(--muted); font-size: 0.9rem; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+    .actions a, .actions button {
+      font: inherit; font-weight: 700; text-decoration: none; border: none; cursor: pointer;
+      background: var(--accent-soft); color: #1e4ea8; padding: 7px 12px; border-radius: 8px;
+    }
+    .detail {
+      display: none; margin-top: 10px; background: #f7f9fc; border-radius: 10px; padding: 12px; white-space: pre-wrap;
+      font-size: 0.88rem; line-height: 1.7; direction: rtl;
+    }
+    .detail.open { display: block; }
+    .empty { background: #fff; border: 1px dashed var(--border); border-radius: 12px; padding: 28px; text-align: center; color: var(--muted); }
+    .top-links { margin-bottom: 14px; }
+    .top-links a { color: #fff; font-weight: 700; opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <header class="hero" style="padding-bottom: 40px">
+    <div class="hero-inner">
+      <div class="top-links"><a href="/">← العودة للاستمارة</a></div>
+      <h1 style="font-size: 1.8rem">سجل الطلبة المحفوظ</h1>
+      <p class="hero-desc">مرتّب حسب الصف ثم الشعبة — مع كامل المعلومات المرسلة.</p>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="card" style="margin-bottom: 16px">
+      <div class="filters">
+        <select id="gradeFilter"><option value="">كل الصفوف</option></select>
+        <select id="sectionFilter"><option value="">كل الشعب</option></select>
+        <input id="search" type="search" placeholder="بحث بالاسم أو الهاتف أو رقم البطاقة" />
+      </div>
+      <div class="stats" id="stats">جاري التحميل...</div>
+    </div>
+    <div id="list"></div>
+  </div>
+
+  <script>
+    const gradeFilter = document.getElementById("gradeFilter");
+    const sectionFilter = document.getElementById("sectionFilter");
+    const search = document.getElementById("search");
+    const list = document.getElementById("list");
+    const stats = document.getElementById("stats");
+    let allStudents = [];
+    let registry = null;
+
+    function fillFilters() {
+      const grades = Object.keys(registry?.grades || {});
+      gradeFilter.innerHTML = '<option value="">كل الصفوف</option>' +
+        grades.map((g) => `<option value="${g}">${g}</option>`).join("");
+      updateSectionOptions();
+    }
+
+    function updateSectionOptions() {
+      const g = gradeFilter.value;
+      const sections = new Set();
+      if (g && registry.grades[g]) {
+        Object.keys(registry.grades[g]).forEach((s) => sections.add(s));
+      } else {
+        Object.values(registry.grades || {}).forEach((secMap) => {
+          Object.keys(secMap || {}).forEach((s) => sections.add(s));
+        });
+      }
+      const cur = sectionFilter.value;
+      sectionFilter.innerHTML = '<option value="">كل الشعب</option>' +
+        [...sections].map((s) => `<option value="${s}">${s}</option>`).join("");
+      if ([...sectionFilter.options].some((o) => o.value === cur)) sectionFilter.value = cur;
+    }
+
+    function filtered() {
+      const q = search.value.trim();
+      return allStudents.filter((s) => {
+        if (gradeFilter.value && s.grade !== gradeFilter.value) return false;
+        if (sectionFilter.value && s.section !== sectionFilter.value) return false;
+        if (!q) return true;
+        return [s.fullName, s.phone, s.nationalId].some((v) => String(v || "").includes(q));
+      });
+    }
+
+    function render() {
+      const students = filtered();
+      stats.textContent = `المعروض: ${students.length} من أصل ${registry?.total || 0} طالب محفوظ`;
+
+      if (!students.length) {
+        list.innerHTML = '<div class="empty">لا توجد استمارات محفوظة بعد.</div>';
+        return;
+      }
+
+      const grouped = {};
+      for (const s of students) {
+        if (!grouped[s.grade]) grouped[s.grade] = {};
+        if (!grouped[s.grade][s.section]) grouped[s.grade][s.section] = [];
+        grouped[s.grade][s.section].push(s);
+      }
+
+      list.innerHTML = Object.entries(grouped).map(([grade, sections]) => `
+        <div class="grade-block card" style="padding:0; overflow:hidden">
+          <div class="grade-title">${grade}</div>
+          ${Object.entries(sections).map(([section, items]) => `
+            <div class="section-title">الشعبة ${section} — ${items.length} طالب</div>
+            ${items.map((s) => `
+              <div class="student-row">
+                <strong>${s.fullName || "بدون اسم"}</strong>
+                <div class="meta">الهاتف: ${s.phone || "—"} • البطاقة: ${s.nationalId || "—"} • ${new Date(s.savedAt).toLocaleString("ar-IQ")}</div>
+                <div class="actions">
+                  <button type="button" data-id="${s.id}">عرض التفاصيل</button>
+                  ${s.collage ? `<a href="/data-files/${s.collage}" target="_blank">صورة المستمسكات</a>` : ""}
+                </div>
+                <div class="detail" id="detail-${s.id}"></div>
+              </div>
+            `).join("")}
+          `).join("")}
+        </div>
+      `).join("");
+
+      list.querySelectorAll("button[data-id]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.id;
+          const box = document.getElementById(`detail-${id}`);
+          if (box.classList.contains("open") && box.dataset.loaded) {
+            box.classList.toggle("open");
+            return;
+          }
+          box.textContent = "جاري التحميل...";
+          box.classList.add("open");
+          const res = await fetch(`/api/students/${id}`);
+          const data = await res.json();
+          if (!data.ok) {
+            box.textContent = data.error || "تعذّر التحميل";
+            return;
+          }
+          const r = data.student;
+          box.dataset.loaded = "1";
+          box.textContent = JSON.stringify(r, null, 2);
+        });
+      });
+    }
+
+    async function load() {
+      const res = await fetch("/api/students");
+      const data = await res.json();
+      if (!data.ok) {
+        stats.textContent = data.error || "فشل التحميل";
+        return;
+      }
+      registry = data.registry;
+      allStudents = data.students;
+      fillFilters();
+      render();
+    }
+
+    gradeFilter.addEventListener("change", () => { updateSectionOptions(); render(); });
+    sectionFilter.addEventListener("change", render);
+    search.addEventListener("input", render);
+    load();
+  </script>
+</body>
+</html>

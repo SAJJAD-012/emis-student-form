@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>استمارة بيانات الطلبة | EMIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="hero-top">
+        <div class="brand-block">
+          <div class="brand-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="8" y1="13" x2="16" y2="13"/>
+              <line x1="8" y1="17" x2="13" y2="17"/>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-line">EMIS • وزارة التربية</div>
+            <div class="brand-sub">إدارة EMIS • الأستاذ سجاد علي</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="hero-chip" href="/students.html" style="text-decoration:none;color:inherit">سجل الطلبة</a>
+          <span class="hero-chip">استمارة إلكترونية</span>
+        </div>
+      </div>
+
+      <p class="hero-school">مدرسة قطر • محافظة ميسان</p>
+      <h1>تحديث بيانات الطلبة</h1>
+      <p class="hero-desc">
+        يرجى تعبئة المعلومات التالية بدقة. ستصل الاستمارة إلى إدارة مدرسة قطر لمراجعتها وتحديثها في نظام EMIS.
+      </p>
+
+      <div class="hero-badges">
+        <span class="badge"><span class="badge-ico">⌛</span> تستغرق 3–5 دقائق</span>
+        <span class="badge"><span class="badge-ico">✦</span> لا يحتاج إلى إنشاء حساب</span>
+        <span class="badge"><span class="badge-ico">✓</span> يعمل عبر الهاتف</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="notice">
+      <span class="notice-ico" aria-hidden="true">📄</span>
+      <p>
+        <strong>تنبيه:</strong>
+        يرجى كتابة الأسماء كما هي في الوثيقة الرسمية، والتأكد من رقم الهاتف قبل الإرسال. الحقول المعلّمة بنجمة مطلوبة.
+      </p>
+    </div>
+
+    <form id="emisForm" novalidate>
+      <!-- المعلومات الشخصية -->
+      <section class="card">
+        <div class="section-head">
+          <div class="section-icon person">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div>
+            <h2>المعلومات الشخصية</h2>
+            <p>المعلومات الأساسية للطالب كما تظهر في الوثائق الرسمية.</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <label class="field">
+            <span>اسم الطالب <em>*</em></span>
+            <input type="text" name="studentName" placeholder="مثال: أحمد" required />
+          </label>
+          <label class="field">
+            <span>اسم الأب <em>*</em></span>
+            <input type="text" name="fatherName" required />
+          </label>
+          <label class="field">
+            <span>اسم الجد <em>*</em></span>
+            <input type="text" name="grandfatherName" required />
+          </label>
+          <label class="field">
+            <span>اسم جد الأب <em>*</em></span>
+            <input type="text" name="greatGrandfatherName" required />
+          </label>
+        </div>
+
+        <label class="field">
+          <span>اللقب <em>*</em></span>
+          <input type="text" name="surname" required />
+        </label>
+
+        <div class="grid-2">
+          <label class="field">
+            <span>اسم الأم <em>*</em></span>
+            <input type="text" name="motherName" required />
+          </label>
+          <label class="field">
+            <span>اسم والد الأم <em>*</em></span>
+            <input type="text" name="maternalGrandfather" required />
+          </label>
+          <label class="field">
+            <span>اسم جد الأم <em>*</em></span>
+            <input type="text" name="maternalGreatGrandfather" required />
+          </label>
+          <label class="field">
+            <span>تاريخ الولادة <em>*</em></span>
+            <input type="date" name="birthDate" required />
+          </label>
+          <label class="field">
+            <span>محل الولادة</span>
+            <input type="text" name="birthPlace" placeholder="اختياري" />
+          </label>
+          <label class="field">
+            <span>الجنس <em>*</em></span>
+            <select name="gender" required>
+              <option value="ذكر">ذكر</option>
+              <option value="أنثى">أنثى</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>الجنسية <em>*</em></span>
+            <select name="nationality" required>
+              <option value="العراق">العراق</option>
+              <option value="أخرى">أخرى</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>اللغة الأم <em>*</em></span>
+            <select name="motherTongue" required>
+              <option value="">اختر من القائمة</option>
+              <option value="العربية">العربية</option>
+              <option value="الكردية">الكردية</option>
+              <option value="التركمانية">التركمانية</option>
+              <option value="أخرى">أخرى</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>فئة الدم <em>*</em></span>
+            <select name="bloodType" required>
+              <option value="">اختر من القائمة</option>
+              <option>A+</option>
+              <option>A-</option>
+              <option>B+</option>
+              <option>B-</option>
+              <option>AB+</option>
+              <option>AB-</option>
+              <option>O+</option>
+              <option>O-</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <!-- التواصل والوثائق -->
+      <section class="card">
+        <div class="section-head">
+          <div class="section-icon phone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.68 2.35a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.75.32 1.54.55 2.35.68A2 2 0 0 1 22 16.92z"/>
+            </svg>
+          </div>
+          <div>
+            <h2>بيانات التواصل والوثائق</h2>
+            <p>رقم يمكن للمدرسة استخدامه عند الحاجة إلى مراجعة البيانات.</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <label class="field">
+            <span>رقم الهاتف <em>*</em></span>
+            <input type="tel" name="phone" placeholder="07XXXXXXXXX" required />
+          </label>
+          <label class="field">
+            <span>البريد الإلكتروني</span>
+            <input type="email" name="email" placeholder="اختياري" />
+          </label>
+          <label class="field">
+            <span>نوع الوثيقة <em>*</em></span>
+            <select name="docType" required>
+              <option value="البطاقة الوطنية الموحدة">البطاقة الوطنية الموحدة</option>
+              <option value="هوية الأحوال المدنية">هوية الأحوال المدنية</option>
+              <option value="شهادة الجنسية">شهادة الجنسية</option>
+              <option value="أخرى">أخرى</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>بلد الإصدار <em>*</em></span>
+            <select name="issueCountry" required>
+              <option value="العراق">العراق</option>
+              <option value="أخرى">أخرى</option>
+            </select>
+          </label>
+        </div>
+        <label class="field">
+          <span>رقم البطاقة الوطنية الموحدة <em>*</em></span>
+          <input type="text" name="nationalId" required />
+        </label>
+      </section>
+
+      <!-- عنوان السكن -->
+      <section class="card">
+        <div class="section-head">
+          <div class="section-icon home">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </div>
+          <div>
+            <h2>عنوان السكن</h2>
+            <p>أدخل العنوان الحالي للطالب بطريقة واضحة.</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <label class="field">
+            <span>المحافظة <em>*</em></span>
+            <input type="text" name="governorate" value="ميسان" readonly required />
+          </label>
+          <label class="field">
+            <span>القضاء / الناحية <em>*</em></span>
+            <input type="text" name="district" required />
+          </label>
+          <label class="field">
+            <span>الحي <em>*</em></span>
+            <input type="text" name="neighborhood" required />
+          </label>
+          <label class="field">
+            <span>المحلة <em>*</em></span>
+            <input type="text" name="locality" required />
+          </label>
+          <label class="field">
+            <span>الزقاق <em>*</em></span>
+            <input type="text" name="alley" required />
+          </label>
+          <label class="field">
+            <span>رقم الدار <em>*</em></span>
+            <input type="text" name="houseNumber" required />
+          </label>
+        </div>
+        <label class="field">
+          <span>أقرب نقطة دالة <em>*</em></span>
+          <input type="text" name="landmark" required />
+        </label>
+      </section>
+
+      <!-- البيانات الدراسية -->
+      <section class="card">
+        <div class="section-head">
+          <div class="section-icon school">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+          </div>
+          <div>
+            <h2>البيانات الدراسية</h2>
+            <p>مدرسة قطر — محافظة ميسان. جميع الحقول الدراسية مطلوبة.</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <label class="field">
+            <span>اسم المدرسة <em>*</em></span>
+            <input type="text" name="schoolName" value="مدرسة قطر" readonly required />
+          </label>
+          <label class="field">
+            <span>الصف الدراسي <em>*</em></span>
+            <select name="grade" id="gradeSelect" required>
+              <option value="الأول الابتدائي">الأول الابتدائي</option>
+              <option value="الثاني الابتدائي">الثاني الابتدائي</option>
+              <option value="الثالث الابتدائي">الثالث الابتدائي</option>
+              <option value="الرابع الابتدائي">الرابع الابتدائي</option>
+              <option value="الخامس الابتدائي">الخامس الابتدائي</option>
+              <option value="السادس الابتدائي">السادس الابتدائي</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>الشعبة <em>*</em></span>
+            <select name="section" id="sectionSelect" required>
+              <option value="أ">أ</option>
+              <option value="ب">ب</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>لغة الدراسة <em>*</em></span>
+            <select name="studyLanguage" required>
+              <option value="العربية">العربية</option>
+              <option value="الكردية">الكردية</option>
+              <option value="التركمانية">التركمانية</option>
+              <option value="أخرى">أخرى</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>مشمول بمنحة الرعاية الاجتماعية؟ <em>*</em></span>
+            <select name="socialGrant" required>
+              <option value="لا">لا</option>
+              <option value="نعم">نعم</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>المستوى المعيشي <em>*</em></span>
+            <select name="livingLevel" required>
+              <option value="تحت خط الفقر">تحت خط الفقر</option>
+              <option value="الطبقة الفقيرة">الطبقة الفقيرة</option>
+              <option value="الطبقة الوسطى">الطبقة الوسطى</option>
+              <option value="الطبقة العليا">الطبقة العليا</option>
+            </select>
+          </label>
+        </div>
+        <label class="field">
+          <span>ملاحظات إضافية</span>
+          <textarea name="notes" rows="3" placeholder="أي معلومة ترغب بإيصالها إلى إدارة المدرسة"></textarea>
+        </label>
+      </section>
+
+      <!-- المستمسكات آخراً -->
+      <section class="card" id="docsSection">
+        <div class="section-head">
+          <div class="section-icon docs">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+          </div>
+          <div>
+            <h2>إرفاق المستمسكات المطلوبة</h2>
+            <p>أرفق صورة واضحة للوجه وصورة واضحة للظهر لكل مستمسك. جميع الصور مطلوبة — أي حجم مقبول.</p>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>صورة الطالب <em>*</em></span>
+          <input type="file" name="studentPhoto" accept="image/*" required />
+        </label>
+
+        <div class="doc-block">
+          <h3>البطاقة الوطنية الموحدة للطالب</h3>
+          <div class="grid-2">
+            <label class="field">
+              <span>صورة الوجه <em>*</em></span>
+              <input type="file" name="studentIdFront" accept="image/*" required />
+            </label>
+            <label class="field">
+              <span>صورة الظهر <em>*</em></span>
+              <input type="file" name="studentIdBack" accept="image/*" required />
+            </label>
+          </div>
+        </div>
+
+        <div class="doc-block">
+          <h3>البطاقة الوطنية الموحدة للأب</h3>
+          <div class="grid-2">
+            <label class="field">
+              <span>صورة الوجه <em>*</em></span>
+              <input type="file" name="fatherIdFront" accept="image/*" required />
+            </label>
+            <label class="field">
+              <span>صورة الظهر <em>*</em></span>
+              <input type="file" name="fatherIdBack" accept="image/*" required />
+            </label>
+          </div>
+        </div>
+
+        <div class="doc-block">
+          <h3>البطاقة الوطنية الموحدة للأم</h3>
+          <div class="grid-2">
+            <label class="field">
+              <span>صورة الوجه <em>*</em></span>
+              <input type="file" name="motherIdFront" accept="image/*" required />
+            </label>
+            <label class="field">
+              <span>صورة الظهر <em>*</em></span>
+              <input type="file" name="motherIdBack" accept="image/*" required />
+            </label>
+          </div>
+        </div>
+
+        <div class="doc-block">
+          <h3>بطاقة السكن</h3>
+          <div class="grid-2">
+            <label class="field">
+              <span>صورة الوجه <em>*</em></span>
+              <input type="file" name="residenceFront" accept="image/*" required />
+            </label>
+            <label class="field">
+              <span>صورة الظهر <em>*</em></span>
+              <input type="file" name="residenceBack" accept="image/*" required />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="submit-card">
+        <div>
+          <h2>هل راجعت المعلومات؟</h2>
+          <p>بالضغط على الإرسال ستصل البيانات والمستمسكات إلى تيليجرام.</p>
+        </div>
+        <button type="submit" class="submit-btn" id="submitBtn">
+          إرسال الاستمارة
+        </button>
+      </section>
+    </form>
+
+    <div id="toast" class="toast" hidden></div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
