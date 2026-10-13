@@ -2,14 +2,14 @@ const sharp = require("sharp");
 const path = require("path");
 const fs = require("fs");
 
-// دقة أوضح مع بقاء السرعة مقبولة
-const MAX_W = 720;
-const MAX_H = 480;
-const LABEL_H = 36;
-const GAP = 10;
-const PAD = 14;
+// أقصى دقة عملية للمستمسكات (نص البطاقة يبقى مقروءًا)
+const MAX_W = 1400;
+const MAX_H = 1000;
+const LABEL_H = 44;
+const GAP = 14;
+const PAD = 18;
 const COLS = 3;
-const JPEG_Q = 85;
+const JPEG_Q = 97;
 
 const DOC_ORDER = [
   { field: "studentPhoto", label: "صورة الطالب" },
@@ -35,37 +35,42 @@ function labelSvg(text) {
   return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${MAX_W}" height="${LABEL_H}" xmlns="http://www.w3.org/2000/svg">
   <rect width="100%" height="100%" fill="#123056"/>
-  <text x="${MAX_W - 12}" y="24" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="16" fill="#fff">${escapeXml(text)}</text>
+  <text x="${MAX_W - 16}" y="30" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="20" fill="#fff">${escapeXml(text)}</text>
 </svg>`);
 }
 
-async function makeFastTile(filePath, label) {
+async function makeHiResTile(filePath, label) {
+  // بلاط وسيط بدون JPEG لتفادي الضغط المزدوج
   let imageBuf;
   if (filePath && fs.existsSync(filePath)) {
-    imageBuf = await sharp(filePath, { failOn: "none", sequentialRead: true })
+    imageBuf = await sharp(filePath, {
+      failOn: "none",
+      sequentialRead: true,
+      limitInputPixels: false,
+    })
       .rotate()
       .resize({
         width: MAX_W,
         height: MAX_H,
         fit: "inside",
         withoutEnlargement: true,
-        fastShrinkOnLoad: true,
+        kernel: sharp.kernel.lanczos3,
       })
-      .jpeg({ quality: JPEG_Q, mozjpeg: true })
+      .png({ compressionLevel: 6 })
       .toBuffer();
   } else {
     imageBuf = await sharp({
-      create: { width: MAX_W, height: 180, channels: 3, background: { r: 230, g: 235, b: 240 } },
+      create: { width: MAX_W, height: 280, channels: 3, background: { r: 230, g: 235, b: 240 } },
     })
-      .jpeg({ quality: 70 })
+      .png()
       .toBuffer();
   }
 
   const imgMeta = await sharp(imageBuf).metadata();
-  const imgH = imgMeta.height || 180;
+  const imgH = imgMeta.height || 280;
   const imgW = imgMeta.width || MAX_W;
   const left = Math.max(0, Math.floor((MAX_W - imgW) / 2));
-  const tileH = LABEL_H + 6 + imgH;
+  const tileH = LABEL_H + 8 + imgH;
 
   const buf = await sharp({
     create: {
@@ -77,9 +82,9 @@ async function makeFastTile(filePath, label) {
   })
     .composite([
       { input: labelSvg(label), top: 0, left: 0 },
-      { input: imageBuf, top: LABEL_H + 6, left },
+      { input: imageBuf, top: LABEL_H + 8, left },
     ])
-    .jpeg({ quality: JPEG_Q, mozjpeg: true })
+    .png({ compressionLevel: 6 })
     .toBuffer();
 
   return { buf, height: tileH, width: MAX_W };
@@ -91,19 +96,19 @@ function detailsSvg(width, details = {}, fullName = "") {
     `${details.grade || "—"} / ${details.section || "—"} | ${details.phone || "—"} | ${details.nationalId || "—"}`,
   ];
   return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="64" xmlns="http://www.w3.org/2000/svg">
+<svg width="${width}" height="72" xmlns="http://www.w3.org/2000/svg">
   <rect width="100%" height="100%" fill="#0b1f3a"/>
-  <text x="${width - 14}" y="26" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="17" fill="#fff">${escapeXml(lines[0])}</text>
-  <text x="${width - 14}" y="50" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="13" fill="#b8c7dc">${escapeXml(lines[1])}</text>
+  <text x="${width - 18}" y="30" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="22" fill="#fff">${escapeXml(lines[0])}</text>
+  <text x="${width - 18}" y="56" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="15" fill="#b8c7dc">${escapeXml(lines[1])}</text>
 </svg>`);
 }
 
 /**
- * تجميع المستمسكات بدقة أوضح (شبكة 3 أعمدة)
+ * تجميع المستمسكات بأقصى دقة عملية
  */
 async function buildDocumentsCollage(files, { fullName, schoolName, outDir, details = {} }) {
   const tiles = await Promise.all(
-    DOC_ORDER.map((doc) => makeFastTile(files?.[doc.field]?.[0]?.path, doc.label))
+    DOC_ORDER.map((doc) => makeHiResTile(files?.[doc.field]?.[0]?.path, doc.label))
   );
 
   const rows = Math.ceil(tiles.length / COLS);
@@ -119,7 +124,7 @@ async function buildDocumentsCollage(files, { fullName, schoolName, outDir, deta
 
   const gridW = COLS * MAX_W + (COLS - 1) * GAP;
   const gridH = rowHeights.reduce((a, b) => a + b, 0) + GAP * Math.max(0, rows - 1);
-  const headerH = 64;
+  const headerH = 72;
   const totalW = gridW + PAD * 2;
   const totalH = headerH + PAD + gridH + PAD;
 
@@ -157,7 +162,14 @@ async function buildDocumentsCollage(files, { fullName, schoolName, outDir, deta
     },
   })
     .composite(composites)
-    .jpeg({ quality: JPEG_Q, mozjpeg: true })
+    .jpeg({
+      quality: JPEG_Q,
+      mozjpeg: true,
+      chromaSubsampling: "4:4:4",
+      trellisQuantisation: true,
+      overshootDeringing: true,
+      optimiseScans: true,
+    })
     .toFile(outPath);
 
   return outPath;
