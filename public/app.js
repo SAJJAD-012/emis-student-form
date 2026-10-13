@@ -141,14 +141,14 @@ function setSendProgress(percent, status) {
   if (sendStatus) sendStatus.textContent = status;
 }
 
-function openSendOverlay(show) {
+function openSendOverlay(show, mode = "busy") {
   if (!sendOverlay) return;
   sendOverlay.hidden = !show;
   sendOverlay.setAttribute("aria-hidden", show ? "false" : "true");
-  if (show) {
-    if (sendBusy) sendBusy.hidden = false;
-    if (sendSuccess) sendSuccess.hidden = true;
-  }
+  if (!show) return;
+  const success = mode === "success";
+  if (sendBusy) sendBusy.hidden = success;
+  if (sendSuccess) sendSuccess.hidden = !success;
 }
 
 function resetFormDefaults() {
@@ -159,6 +159,7 @@ function resetFormDefaults() {
   if (gov) gov.value = "ميسان";
   if (school) school.value = "مدرسة قطر";
   if (tongue) tongue.value = "العربية";
+  if (gradeSelect) gradeSelect.value = "";
   updateSections();
   document.querySelectorAll(".file-preview").forEach((el) => {
     el.hidden = true;
@@ -170,10 +171,9 @@ function resetFormDefaults() {
 function showSuccessDialog(requestId) {
   return new Promise((resolve) => {
     successResolve = resolve;
-    if (sendBusy) sendBusy.hidden = true;
-    if (sendSuccess) sendSuccess.hidden = false;
     if (requestIdValue) requestIdValue.textContent = requestId || "—";
-    openSendOverlay(true);
+    setSendProgress(100, "تم الإرسال بنجاح");
+    openSendOverlay(true, "success");
   });
 }
 
@@ -260,9 +260,13 @@ form.addEventListener("submit", async (e) => {
       if (p >= 55 && !stopPoll) stopPoll = pollServerProgress(submissionId, setSendProgress);
     });
     const json = await uploadPromise;
-    if (stopPoll) stopPoll();
+    if (stopPoll) {
+      stopPoll();
+      stopPoll = null;
+    }
     setSendProgress(100, "تم الإرسال بنجاح");
     const requestId = json?.saved?.id || "—";
+    // إظهار رسالة النجاح فورًا دون البقاء عالقًا على 100%
     await showSuccessDialog(requestId);
     resetFormDefaults();
     showToast(`تم الإرسال — رقم الطلب: ${requestId}`, "success");

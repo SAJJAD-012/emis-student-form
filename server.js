@@ -237,12 +237,37 @@ function row(label, value) {
   return `  ${label}: <b>${escapeHtml(value || "—")}</b>`;
 }
 
-function buildFormattedMessage(b, fullName, requestId) {
-  const now = new Date().toLocaleString("ar-IQ", {
+/** تاريخ رقمي واضح بدون قلب كلمات عربية في تيليجرام */
+function formatDateNumeric(value) {
+  if (!value) return "—";
+  const raw = String(value).trim();
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return raw;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function formatNowBaghdad() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Baghdad",
-    dateStyle: "full",
-    timeStyle: "short",
-  });
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  const get = (type) => parts.find((p) => p.type === type)?.value || "";
+  return `${get("day")}/${get("month")}/${get("year")} ${get("hour")}:${get("minute")}`;
+}
+
+function buildFormattedMessage(b, fullName, requestId) {
+  const now = formatNowBaghdad();
+  const birth = formatDateNumeric(b.birthDate);
 
   return `
 🏫 <b>مدرسة قطر • نظام EMIS</b>
@@ -261,7 +286,7 @@ ${row("والد الأم", b.maternalGrandfather)}
 ${row("جد الأم", b.maternalGreatGrandfather)}
 
 🔹 <b>التفاصيل الشخصية</b>
-${row("تاريخ الولادة", b.birthDate)}
+${row("تاريخ الولادة", birth)}
 ${row("محل الولادة", b.birthPlace)}
 ${row("الجنس", b.gender)}
 ${row("الجنسية", b.nationality)}
