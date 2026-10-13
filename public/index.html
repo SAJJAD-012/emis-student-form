@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>استمارة بيانات الطلبة | EMIS</title>
+  <title>مدرسة قطر الابتدائية | استمارة بيانات الطلبة</title>
+  <link rel="icon" href="school-logo.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -14,14 +15,6 @@
     <div class="hero-inner">
       <div class="hero-top">
         <div class="brand-block">
-          <div class="brand-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="8" y1="13" x2="16" y2="13"/>
-              <line x1="8" y1="17" x2="13" y2="17"/>
-            </svg>
-          </div>
           <div>
             <div class="brand-line">EMIS • وزارة التربية</div>
             <div class="brand-sub">إدارة EMIS • الأستاذ سجاد علي</div>
@@ -30,7 +23,11 @@
         <span class="hero-chip">استمارة إلكترونية</span>
       </div>
 
-      <p class="hero-school">مدرسة قطر • محافظة ميسان</p>
+      <div class="hero-brand">
+        <img src="school-logo.png" alt="شعار مدرسة قطر الابتدائية" class="school-logo" width="160" height="160" />
+        <p class="hero-school-name">مدرسة قطر الابتدائية</p>
+        <p class="hero-school">محافظة ميسان</p>
+      </div>
       <h1>تحديث بيانات الطلبة</h1>
       <p class="hero-desc">
         يرجى تعبئة المعلومات التالية بدقة. ستصل الاستمارة إلى إدارة مدرسة قطر لمراجعتها وتحديثها في نظام EMIS.
@@ -145,8 +142,7 @@
           <label class="field">
             <span>اللغة الأم <em>*</em></span>
             <select name="motherTongue" required>
-              <option value="">اختر من القائمة</option>
-              <option value="العربية">العربية</option>
+              <option value="العربية" selected>العربية</option>
               <option value="الكردية">الكردية</option>
               <option value="التركمانية">التركمانية</option>
               <option value="أخرى">أخرى</option>
@@ -423,13 +419,27 @@
   </main>
 
   <div id="sendOverlay" class="send-overlay" hidden aria-hidden="true">
-    <div class="send-panel">
-      <div class="send-ring" aria-hidden="true"></div>
-      <h3>جاري إرسال الاستمارة</h3>
-      <p id="sendStatus">التحقق من البيانات...</p>
-      <div class="send-percent" id="sendPercent">0%</div>
-      <div class="send-progress"><span id="sendBar"></span></div>
-      <p class="send-hint">لا تغلق الصفحة حتى يكتمل الإرسال</p>
+    <div class="send-panel" id="sendPanel">
+      <div id="sendBusy">
+        <div class="send-ring" aria-hidden="true"></div>
+        <h3>جاري إرسال الاستمارة</h3>
+        <p id="sendStatus">التحقق من البيانات...</p>
+        <div class="send-percent" id="sendPercent">0%</div>
+        <div class="send-progress"><span id="sendBar"></span></div>
+        <p class="send-hint">لا تغلق الصفحة حتى يكتمل الإرسال</p>
+      </div>
+      <div id="sendSuccess" class="send-success" hidden>
+        <img src="school-logo.png" alt="" class="success-logo" width="72" height="72" />
+        <div class="success-check" aria-hidden="true">✓</div>
+        <h3>تم استلام الطلب بنجاح</h3>
+        <p>وصلت بيانات الطالب والمستمسكات إلى إدارة المدرسة.</p>
+        <div class="request-box">
+          <span class="request-label">رقم الطلب</span>
+          <strong id="requestIdValue" class="request-id">—</strong>
+        </div>
+        <p class="send-hint">احتفظ برقم الطلب للمراجعة لاحقاً</p>
+        <button type="button" class="nav-btn success-ok" id="successOkBtn">حسناً</button>
+      </div>
     </div>
   </div>
 

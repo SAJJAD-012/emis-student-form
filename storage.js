@@ -38,8 +38,17 @@ function saveRegistry(registry) {
   fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2), "utf8");
 }
 
-function buildStudentRecord(body, fullName, collageRelativePath) {
-  const id = `stu_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+function makeRequestId() {
+  const d = new Date();
+  const yy = String(d.getFullYear()).slice(-2);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const rand = String(Math.floor(1000 + Math.random() * 9000));
+  return `QTR-${yy}${mm}${dd}-${rand}`;
+}
+
+function buildStudentRecord(body, fullName, collageRelativePath, requestId) {
+  const id = requestId || makeRequestId();
   return {
     id,
     savedAt: new Date().toISOString(),
@@ -92,7 +101,7 @@ function buildStudentRecord(body, fullName, collageRelativePath) {
 /**
  * يحفظ الطالب محلياً ويرتّبه حسب الصف والشعبة
  */
-function saveStudentSubmission({ body, fullName, collagePath }) {
+function saveStudentSubmission({ body, fullName, collagePath, requestId }) {
   ensureDirs();
 
   const grade = body.grade || "غير محدد";
@@ -111,7 +120,7 @@ function saveStudentSubmission({ body, fullName, collagePath }) {
     collageRelative = path.join("collages", collageName).replace(/\\/g, "/");
   }
 
-  const record = buildStudentRecord(body, fullName, collageRelative);
+  const record = buildStudentRecord(body, fullName, collageRelative, requestId);
   const fileName = `${record.id}.json`;
   const absoluteJson = path.join(gradeDir, fileName);
   fs.writeFileSync(absoluteJson, JSON.stringify(record, null, 2), "utf8");
@@ -176,6 +185,7 @@ function getStudentById(id) {
 
 module.exports = {
   dataRoot,
+  makeRequestId,
   saveStudentSubmission,
   listStudents,
   getStudentById,

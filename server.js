@@ -7,7 +7,7 @@ const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 const { buildDocumentsCollage } = require("./collage");
-const { saveStudentSubmission, listStudents, getStudentById, dataRoot } = require("./storage");
+const { saveStudentSubmission, listStudents, getStudentById, dataRoot, makeRequestId } = require("./storage");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -237,7 +237,7 @@ function row(label, value) {
   return `  ${label}: <b>${escapeHtml(value || "—")}</b>`;
 }
 
-function buildFormattedMessage(b, fullName) {
+function buildFormattedMessage(b, fullName, requestId) {
   const now = new Date().toLocaleString("ar-IQ", {
     timeZone: "Asia/Baghdad",
     dateStyle: "full",
@@ -251,6 +251,7 @@ function buildFormattedMessage(b, fullName) {
 
 ════════════════════════
 🧾 <b>استمارة بيانات طالب</b>
+🔖 رقم الطلب: <b>${escapeHtml(requestId || "—")}</b>
 ════════════════════════
 
 🔹 <b>الهوية الكاملة</b>
@@ -428,10 +429,11 @@ app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
     const fullName = [b.studentName, b.fatherName, b.grandfatherName, b.greatGrandfatherName, b.surname]
       .filter(Boolean)
       .join(" ");
+    const requestId = makeRequestId();
 
     // رسالة كاملة + كولاج في نفس الوقت لتوفير الوقت
     setProgress(submissionId, 65, "إرسال البيانات وتجهيز المستمسكات...");
-    const message = buildFormattedMessage(b, fullName);
+    const message = buildFormattedMessage(b, fullName, requestId);
     const collagePromise = buildDocumentsCollage(req.files, {
       fullName,
       schoolName: b.schoolName || "مدرسة قطر",
@@ -447,12 +449,13 @@ app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
       body: b,
       fullName,
       collagePath,
+      requestId,
     });
 
     setProgress(submissionId, 92, "رفع المستمسكات إلى تيليجرام...");
     await sendTelegramPhoto(
       collagePath,
-      `🖼 مستمسكات: ${escapeHtml(fullName)} | ${escapeHtml(b.grade || "")} / ${escapeHtml(b.section || "")}`,
+      `🔖 ${escapeHtml(requestId)}\n🖼 مستمسكات: ${escapeHtml(fullName)} | ${escapeHtml(b.grade || "")} / ${escapeHtml(b.section || "")}`,
       chatId
     );
 

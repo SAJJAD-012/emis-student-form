@@ -13,9 +13,14 @@ const sendOverlay = document.getElementById("sendOverlay");
 const sendPercent = document.getElementById("sendPercent");
 const sendStatus = document.getElementById("sendStatus");
 const sendBar = document.getElementById("sendBar");
+const sendBusy = document.getElementById("sendBusy");
+const sendSuccess = document.getElementById("sendSuccess");
+const requestIdValue = document.getElementById("requestIdValue");
+const successOkBtn = document.getElementById("successOkBtn");
 
 let currentStep = 0;
 let isSubmitting = false;
+let successResolve = null;
 
 const STEP_TITLES = [
   "المعلومات الشخصية",
@@ -140,7 +145,45 @@ function openSendOverlay(show) {
   if (!sendOverlay) return;
   sendOverlay.hidden = !show;
   sendOverlay.setAttribute("aria-hidden", show ? "false" : "true");
+  if (show) {
+    if (sendBusy) sendBusy.hidden = false;
+    if (sendSuccess) sendSuccess.hidden = true;
+  }
 }
+
+function resetFormDefaults() {
+  form.reset();
+  const gov = form.querySelector('[name="governorate"]');
+  const school = form.querySelector('[name="schoolName"]');
+  const tongue = form.querySelector('[name="motherTongue"]');
+  if (gov) gov.value = "ميسان";
+  if (school) school.value = "مدرسة قطر";
+  if (tongue) tongue.value = "العربية";
+  updateSections();
+  document.querySelectorAll(".file-preview").forEach((el) => {
+    el.hidden = true;
+    el.textContent = "";
+  });
+  showStep(0);
+}
+
+function showSuccessDialog(requestId) {
+  return new Promise((resolve) => {
+    successResolve = resolve;
+    if (sendBusy) sendBusy.hidden = true;
+    if (sendSuccess) sendSuccess.hidden = false;
+    if (requestIdValue) requestIdValue.textContent = requestId || "—";
+    openSendOverlay(true);
+  });
+}
+
+successOkBtn?.addEventListener("click", () => {
+  openSendOverlay(false);
+  if (successResolve) {
+    successResolve();
+    successResolve = null;
+  }
+});
 
 function uploadWithProgress(formData, onProgress) {
   return new Promise((resolve, reject) => {
@@ -219,24 +262,16 @@ form.addEventListener("submit", async (e) => {
     const json = await uploadPromise;
     if (stopPoll) stopPoll();
     setSendProgress(100, "تم الإرسال بنجاح");
-    await new Promise((r) => setTimeout(r, 350));
-    showToast("تم إرسال البيانات الكاملة والمستمسكات", "success");
-    form.reset();
-    form.querySelector('[name="governorate"]').value = "ميسان";
-    form.querySelector('[name="schoolName"]').value = "مدرسة قطر";
-    updateSections();
-    document.querySelectorAll(".file-preview").forEach((el) => {
-      el.hidden = true;
-      el.textContent = "";
-    });
-    showStep(0);
-    console.debug("saved", json.saved);
+    const requestId = json?.saved?.id || "—";
+    await showSuccessDialog(requestId);
+    resetFormDefaults();
+    showToast(`تم الإرسال — رقم الطلب: ${requestId}`, "success");
   } catch (err) {
     if (stopPoll) stopPoll();
+    openSendOverlay(false);
     showToast(err.message || "حدث خطأ أثناء الإرسال", "error");
   } finally {
     if (stopPoll) stopPoll();
-    openSendOverlay(false);
     isSubmitting = false;
     submitBtn.disabled = false;
     nextBtn && (nextBtn.disabled = false);

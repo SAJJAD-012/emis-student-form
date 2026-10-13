@@ -2,14 +2,14 @@ const sharp = require("sharp");
 const path = require("path");
 const fs = require("fs");
 
-// أقصى سرعة: صور أصغر + جودة أخف + بدون mozjpeg
-const MAX_W = 420;
-const MAX_H = 280;
-const LABEL_H = 28;
-const GAP = 8;
-const PAD = 12;
+// دقة أوضح مع بقاء السرعة مقبولة
+const MAX_W = 720;
+const MAX_H = 480;
+const LABEL_H = 36;
+const GAP = 10;
+const PAD = 14;
 const COLS = 3;
-const JPEG_Q = 55;
+const JPEG_Q = 85;
 
 const DOC_ORDER = [
   { field: "studentPhoto", label: "صورة الطالب" },
@@ -35,7 +35,7 @@ function labelSvg(text) {
   return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${MAX_W}" height="${LABEL_H}" xmlns="http://www.w3.org/2000/svg">
   <rect width="100%" height="100%" fill="#123056"/>
-  <text x="${MAX_W - 10}" y="20" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="14" fill="#fff">${escapeXml(text)}</text>
+  <text x="${MAX_W - 12}" y="24" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="16" fill="#fff">${escapeXml(text)}</text>
 </svg>`);
 }
 
@@ -51,21 +51,21 @@ async function makeFastTile(filePath, label) {
         withoutEnlargement: true,
         fastShrinkOnLoad: true,
       })
-      .jpeg({ quality: JPEG_Q, chromaSubsampling: "4:2:0" })
+      .jpeg({ quality: JPEG_Q, mozjpeg: true })
       .toBuffer();
   } else {
     imageBuf = await sharp({
-      create: { width: MAX_W, height: 120, channels: 3, background: { r: 230, g: 235, b: 240 } },
+      create: { width: MAX_W, height: 180, channels: 3, background: { r: 230, g: 235, b: 240 } },
     })
-      .jpeg({ quality: 50 })
+      .jpeg({ quality: 70 })
       .toBuffer();
   }
 
   const imgMeta = await sharp(imageBuf).metadata();
-  const imgH = imgMeta.height || 120;
+  const imgH = imgMeta.height || 180;
   const imgW = imgMeta.width || MAX_W;
   const left = Math.max(0, Math.floor((MAX_W - imgW) / 2));
-  const tileH = LABEL_H + 4 + imgH;
+  const tileH = LABEL_H + 6 + imgH;
 
   const buf = await sharp({
     create: {
@@ -77,9 +77,9 @@ async function makeFastTile(filePath, label) {
   })
     .composite([
       { input: labelSvg(label), top: 0, left: 0 },
-      { input: imageBuf, top: LABEL_H + 4, left },
+      { input: imageBuf, top: LABEL_H + 6, left },
     ])
-    .jpeg({ quality: JPEG_Q, chromaSubsampling: "4:2:0" })
+    .jpeg({ quality: JPEG_Q, mozjpeg: true })
     .toBuffer();
 
   return { buf, height: tileH, width: MAX_W };
@@ -91,15 +91,15 @@ function detailsSvg(width, details = {}, fullName = "") {
     `${details.grade || "—"} / ${details.section || "—"} | ${details.phone || "—"} | ${details.nationalId || "—"}`,
   ];
   return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="56" xmlns="http://www.w3.org/2000/svg">
+<svg width="${width}" height="64" xmlns="http://www.w3.org/2000/svg">
   <rect width="100%" height="100%" fill="#0b1f3a"/>
-  <text x="${width - 12}" y="22" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="15" fill="#fff">${escapeXml(lines[0])}</text>
-  <text x="${width - 12}" y="44" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="12" fill="#b8c7dc">${escapeXml(lines[1])}</text>
+  <text x="${width - 14}" y="26" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="17" fill="#fff">${escapeXml(lines[0])}</text>
+  <text x="${width - 14}" y="50" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="13" fill="#b8c7dc">${escapeXml(lines[1])}</text>
 </svg>`);
 }
 
 /**
- * تجميع سريع للمستمسكات (شبكة 3 أعمدة + صور مضغوطة)
+ * تجميع المستمسكات بدقة أوضح (شبكة 3 أعمدة)
  */
 async function buildDocumentsCollage(files, { fullName, schoolName, outDir, details = {} }) {
   const tiles = await Promise.all(
@@ -119,7 +119,7 @@ async function buildDocumentsCollage(files, { fullName, schoolName, outDir, deta
 
   const gridW = COLS * MAX_W + (COLS - 1) * GAP;
   const gridH = rowHeights.reduce((a, b) => a + b, 0) + GAP * Math.max(0, rows - 1);
-  const headerH = 56;
+  const headerH = 64;
   const totalW = gridW + PAD * 2;
   const totalH = headerH + PAD + gridH + PAD;
 
@@ -157,7 +157,7 @@ async function buildDocumentsCollage(files, { fullName, schoolName, outDir, deta
     },
   })
     .composite(composites)
-    .jpeg({ quality: JPEG_Q, chromaSubsampling: "4:2:0" })
+    .jpeg({ quality: JPEG_Q, mozjpeg: true })
     .toFile(outPath);
 
   return outPath;
