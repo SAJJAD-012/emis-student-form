@@ -3,14 +3,19 @@ services:
     name: emis-student-form
     runtime: node
     plan: free
-    buildCommand: npm install --omit=dev
+    region: frankfurt
+    branch: main
+    buildCommand: npm ci --omit=dev
     startCommand: npm start
+    healthCheckPath: /api/status
     envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
-      - key: NODE_VERSION
-        value: "20"

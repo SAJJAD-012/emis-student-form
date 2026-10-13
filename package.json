@@ -4,10 +4,14 @@
   "private": true,
   "description": "استمارة تحديث بيانات الطلبة — إرسال إلى تيليجرام",
   "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
   },
+
   "dependencies": {
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

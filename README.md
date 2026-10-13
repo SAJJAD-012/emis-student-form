@@ -16,11 +16,11 @@
    npm install
    npm start
    ```
-4. الاستمارة: http://localhost:3000  
-   سجل الطلبة: http://localhost:3000/students.html  
-   إعداد الشات: http://localhost:3000/setup.html
+4. الاستمارة العامة: http://localhost:3000  
+   دخول الإدارة (سجل الطلبة): http://localhost:3000/admin-login.html  
 
 ## ملاحظات
 
-- لا ترفع ملف `.env` إلى GitHub (يحتوي أسراراً).
-- GitHub Pages لا يشغّل خادم Node؛ للاستضافة العامة استخدم خدمة مثل Render / Railway / VPS مع نفس الأوامر أعلاه.
+- سجل الطلبة محمي بكلمة `ADMIN_PASSWORD` — لا يظهر للعامة.
+- لا ترفع ملف `.env` إلى GitHub.
+- للنشر على Render: اربط المستودع `SAJJAD-012/emis-student-form` وأضف متغيرات البيئة من `.env.example`.
