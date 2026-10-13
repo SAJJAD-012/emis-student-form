@@ -53,9 +53,23 @@
       </p>
     </div>
 
+    <div class="wizard-shell card">
+      <div class="wizard-top">
+        <div class="step-label" id="stepLabel">الخطوة 1 من 5</div>
+        <div class="form-progress"><span id="formProgressFill"></span></div>
+      </div>
+      <div class="step-dots" role="tablist" aria-label="خطوات الاستمارة">
+        <button type="button" class="step-dot active" data-step="0">1<span>شخصية</span></button>
+        <button type="button" class="step-dot" data-step="1">2<span>تواصل</span></button>
+        <button type="button" class="step-dot" data-step="2">3<span>سكن</span></button>
+        <button type="button" class="step-dot" data-step="3">4<span>دراسة</span></button>
+        <button type="button" class="step-dot" data-step="4">5<span>مستمسكات</span></button>
+      </div>
+    </div>
+
     <form id="emisForm" novalidate>
       <!-- المعلومات الشخصية -->
-      <section class="card">
+      <section class="card form-step active" data-step="0">
         <div class="section-head">
           <div class="section-icon person">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -156,7 +170,7 @@
       </section>
 
       <!-- التواصل والوثائق -->
-      <section class="card">
+      <section class="card form-step" data-step="1">
         <div class="section-head">
           <div class="section-icon phone">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -202,7 +216,7 @@
       </section>
 
       <!-- عنوان السكن -->
-      <section class="card">
+      <section class="card form-step" data-step="2">
         <div class="section-head">
           <div class="section-icon home">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -249,7 +263,7 @@
       </section>
 
       <!-- البيانات الدراسية -->
-      <section class="card">
+      <section class="card form-step" data-step="3">
         <div class="section-head">
           <div class="section-icon school">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -319,7 +333,7 @@
       </section>
 
       <!-- المستمسكات آخراً -->
-      <section class="card" id="docsSection">
+      <section class="card form-step" data-step="4" id="docsSection">
         <div class="section-head">
           <div class="section-icon docs">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -396,12 +410,10 @@
         </div>
       </section>
 
-      <section class="submit-card">
-        <div>
-          <h2>هل راجعت المعلومات؟</h2>
-          <p>بالضغط على الإرسال ستصل البيانات والمستمسكات إلى تيليجرام.</p>
-        </div>
-        <button type="submit" class="submit-btn" id="submitBtn">
+      <section class="nav-card">
+        <button type="button" class="nav-btn ghost" id="prevBtn">السابق</button>
+        <button type="button" class="nav-btn" id="nextBtn">التالي</button>
+        <button type="submit" class="submit-btn" id="submitBtn" hidden>
           إرسال الاستمارة
         </button>
       </section>
@@ -409,6 +421,17 @@
 
     <div id="toast" class="toast" hidden></div>
   </main>
+
+  <div id="sendOverlay" class="send-overlay" hidden aria-hidden="true">
+    <div class="send-panel">
+      <div class="send-ring" aria-hidden="true"></div>
+      <h3>جاري إرسال الاستمارة</h3>
+      <p id="sendStatus">التحقق من البيانات...</p>
+      <div class="send-percent" id="sendPercent">0%</div>
+      <div class="send-progress"><span id="sendBar"></span></div>
+      <p class="send-hint">لا تغلق الصفحة حتى يكتمل الإرسال</p>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

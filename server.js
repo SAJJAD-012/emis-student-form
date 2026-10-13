@@ -351,6 +351,23 @@ app.get("/api/students/:id", (req, res) => {
   }
 });
 
+const recentSubmissionIds = new Map();
+
+function claimSubmissionId(id) {
+  const key = String(id || "").trim();
+  if (!key) return { ok: true, duplicate: false };
+  const prev = recentSubmissionIds.get(key);
+  if (prev) return { ok: false, duplicate: true, saved: prev };
+  return { ok: true, duplicate: false };
+}
+
+function rememberSubmissionId(id, saved) {
+  const key = String(id || "").trim();
+  if (!key) return;
+  recentSubmissionIds.set(key, saved);
+  setTimeout(() => recentSubmissionIds.delete(key), 15 * 60 * 1000);
+}
+
 app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
   if (!BOT_TOKEN) {
     cleanupFiles(req.files);
@@ -360,6 +377,17 @@ app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
   let collagePath = null;
 
   try {
+    const claim = claimSubmissionId(req.body?.submissionId);
+    if (claim.duplicate) {
+      cleanupFiles(req.files);
+      return res.json({
+        ok: true,
+        duplicate: true,
+        message: "تم استلام هذا الطلب مسبقاً — لم يُرسل مرة ثانية",
+        saved: claim.saved,
+      });
+    }
+
     const chatId = await resolveChatId();
     const b = req.body;
     const fullName = [b.studentName, b.fatherName, b.grandfatherName, b.greatGrandfatherName, b.surname]
@@ -370,23 +398,33 @@ app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
       fullName,
       schoolName: b.schoolName || "مدرسة قطر",
       outDir: uploadDir,
+      details: b,
     });
 
-    // حفظ محلي مرتّب حسب الصف والشعبة
     const saved = saveStudentSubmission({
       body: b,
       fullName,
       collagePath,
     });
 
-    const message = buildFormattedMessage(b, fullName);
-    await sendTelegramMessage(message, chatId);
+    // إرسال واحد فقط إلى تيليجرام (ملف المستمسكات + ملخص في التعليق)
+    const caption = `
+🧾 <b>استمارة طالب جديدة</b>
+👤 ${escapeHtml(fullName)}
+🎓 ${escapeHtml(b.grade || "—")} / شعبة ${escapeHtml(b.section || "—")}
+📞 ${escapeHtml(b.phone || "—")}
+🪪 ${escapeHtml(b.nationalId || "—")}
+🏠 ${escapeHtml(b.district || "—")} - ${escapeHtml(b.neighborhood || "—")}
+📁 ${escapeHtml(saved.grade)} / ${escapeHtml(saved.section)}
+`.trim();
 
-    await sendTelegramPhoto(
-      collagePath,
-      `🖼 <b>مستمسكات مجمّعة</b>\n👤 ${escapeHtml(fullName)}\n🏫 ${escapeHtml(b.schoolName || "مدرسة قطر")}\n📁 محفوظ محلياً: ${escapeHtml(saved.grade)} / شعبة ${escapeHtml(saved.section)}`,
-      chatId
-    );
+    await sendTelegramPhoto(collagePath, caption, chatId);
+
+    rememberSubmissionId(b.submissionId, {
+      id: saved.id,
+      grade: saved.grade,
+      section: saved.section,
+    });
 
     cleanupFiles(req.files, [collagePath]);
     res.json({

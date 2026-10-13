@@ -43,6 +43,29 @@ function headerSvg(width, title, subtitle) {
 </svg>`);
 }
 
+function detailsPanelSvg(width, details = {}, fullName = "") {
+  const lines = [
+    `الاسم: ${fullName || "—"}`,
+    `الأم: ${details.motherName || "—"} | الميلاد: ${details.birthDate || "—"} | الجنس: ${details.gender || "—"}`,
+    `الهاتف: ${details.phone || "—"} | البطاقة: ${details.nationalId || "—"} | الدم: ${details.bloodType || "—"}`,
+    `الصف: ${details.grade || "—"} / شعبة ${details.section || "—"} | المدرسة: ${details.schoolName || "مدرسة قطر"}`,
+    `العنوان: ${details.governorate || "ميسان"} - ${details.district || "—"} - ${details.neighborhood || "—"} - دار ${details.houseNumber || "—"}`,
+  ];
+  const rowH = 34;
+  const height = 28 + lines.length * rowH;
+  const texts = lines
+    .map(
+      (line, i) =>
+        `<text x="${width - 24}" y="${36 + i * rowH}" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="20" fill="#1a2332">${escapeXml(line)}</text>`
+    )
+    .join("");
+  return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" rx="14" ry="14" fill="#ffffff" stroke="#d5dde8" stroke-width="2"/>
+  ${texts}
+</svg>`);
+}
+
 function labelSvg(width, text) {
   return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${width}" height="${LABEL_H}" xmlns="http://www.w3.org/2000/svg">
@@ -141,7 +164,7 @@ async function makeBlock(filePath, label, canvasWidth) {
 /**
  * يجمع المستمسكات عمودياً — كل صورة كاملة وواضحة بدون قص
  */
-async function buildDocumentsCollage(files, { fullName, schoolName, outDir }) {
+async function buildDocumentsCollage(files, { fullName, schoolName, outDir, details = {} }) {
   // حدّد عرض اللوحة حسب أكبر صورة (بعد التصغير الآمن)
   let contentWidth = 900;
   for (const doc of DOC_ORDER) {
@@ -161,10 +184,14 @@ async function buildDocumentsCollage(files, { fullName, schoolName, outDir }) {
     blocks.push(await makeBlock(file?.path, doc.label, contentWidth));
   }
 
+  const detailsBuf = await sharp(detailsPanelSvg(contentWidth, details, fullName)).png().toBuffer();
+  const detailsMeta = await sharp(detailsBuf).metadata();
+  const detailsH = detailsMeta.height || 200;
+
   const headerH = 120;
   const footerH = 52;
   const blocksH = blocks.reduce((sum, b) => sum + b.height, 0) + GAP * Math.max(0, blocks.length - 1);
-  const totalH = headerH + PAD + blocksH + PAD + footerH;
+  const totalH = headerH + PAD + detailsH + GAP + blocksH + PAD + footerH;
 
   const composites = [
     {
@@ -176,9 +203,14 @@ async function buildDocumentsCollage(files, { fullName, schoolName, outDir }) {
       top: 0,
       left: 0,
     },
+    {
+      input: detailsBuf,
+      top: headerH + PAD,
+      left: PAD,
+    },
   ];
 
-  let y = headerH + PAD;
+  let y = headerH + PAD + detailsH + GAP;
   for (const block of blocks) {
     composites.push({ input: block.buf, top: y, left: PAD });
     y += block.height + GAP;
