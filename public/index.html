@@ -30,22 +30,18 @@
   </nav>
 
   <header class="home-hero">
-    <div class="hero-orb hero-orb--a" aria-hidden="true"></div>
-    <div class="hero-orb hero-orb--b" aria-hidden="true"></div>
-    <div class="hero-veil" aria-hidden="true"></div>
+    <canvas id="neuralCanvas" class="neural-canvas" aria-hidden="true"></canvas>
+    <div class="hero-scan" aria-hidden="true"></div>
     <div class="home-hero-inner">
-      <img class="hero-logo" src="school-logo.png" alt="شعار مدرسة قطر الابتدائية" width="148" height="148" />
-      <p class="hero-eyebrow">محافظة ميسان • منذ 1978</p>
+      <img class="hero-logo" src="school-logo.png" alt="شعار مدرسة قطر الابتدائية" width="112" height="112" />
+      <p class="hero-eyebrow">ميسان • منذ 1978 • نظام ذكي</p>
       <h1 class="hero-brand-name">مدرسة قطر الابتدائية</h1>
-      <p class="hero-tagline">تعليم راسخ… وقيم تُبنى للأجيال</p>
+      <p class="hero-tagline">تعليم راسخ… وبيانات تُدار بذكاء</p>
       <div class="hero-actions">
-        <a class="btn btn-primary" href="/form">تعبئة استمارة الطالب</a>
+        <a class="btn btn-primary" href="/form">استمارة الطالب</a>
         <a class="btn btn-ghost" href="#leadership">القيادة والكادر</a>
       </div>
     </div>
-    <a class="scroll-hint" href="#about" aria-label="الانتقال إلى عن المدرسة">
-      <span></span>
-    </a>
   </header>
 
   <main>
@@ -55,11 +51,11 @@
           <p class="section-kicker">عن المدرسة</p>
           <h2>هوية تعليمية راسخة</h2>
           <p class="section-lead">
-            مدرسة أكاديمية ابتدائية مختلطة تابعة للتربية، دوامها صباحي اعتيادي، وتدرّس بالعربية من الصف الأول إلى السادس في بيئة ريفية نائية.
+            مدرسة أكاديمية ابتدائية مختلطة تابعة للتربية، دوام صباحي اعتيادي، تدرّس بالعربية من الأول إلى السادس.
           </p>
           <div class="about-highlights">
-            <div><strong>02/09/1978</strong><span>تاريخ التأسيس</span></div>
-            <div><strong>2026–2027</strong><span>شمول Epic EMIS</span></div>
+            <div><strong>02/09/1978</strong><span>التأسيس</span></div>
+            <div><strong>2026–2027</strong><span>شمول EMIS</span></div>
           </div>
         </div>
         <dl class="facts">
@@ -78,44 +74,13 @@
         <div class="section-head reveal">
           <p class="section-kicker">أهدافنا</p>
           <h2>مسار واضح لكل جيل</h2>
-          <p class="section-lead">خمسة أهداف تقود العمل داخل الصف وخارجه.</p>
         </div>
         <ol class="goals-list">
-          <li class="goal-item" style="--d:0">
-            <span class="goal-num">01</span>
-            <div>
-              <h3>أساس علمي ولغوي متين</h3>
-              <p>تمكين الطلبة من القراءة والكتابة والحساب بالعربية منذ الصفوف الأولى.</p>
-            </div>
-          </li>
-          <li class="goal-item" style="--d:1">
-            <span class="goal-num">02</span>
-            <div>
-              <h3>قيم وانضباط ومواطنة</h3>
-              <p>بناء سلوك مسؤول واحترام للنظام المدرسي والمجتمع المحلي.</p>
-            </div>
-          </li>
-          <li class="goal-item" style="--d:2">
-            <span class="goal-num">03</span>
-            <div>
-              <h3>رعاية متكافئة في الريف</h3>
-              <p>فرصة تعليم عادلة لكل طالب وطالبة في بيئة ريفية نائية.</p>
-            </div>
-          </li>
-          <li class="goal-item" style="--d:3">
-            <span class="goal-num">04</span>
-            <div>
-              <h3>بيانات دقيقة عبر EMIS</h3>
-              <p>تحديث بيانات الطلبة بشفافية لدعم القرار التربوي.</p>
-            </div>
-          </li>
-          <li class="goal-item" style="--d:4">
-            <span class="goal-num">05</span>
-            <div>
-              <h3>شراكة مع أولياء الأمور</h3>
-              <p>تواصل فعّال مع الأسرة لمتابعة تقدّم الطالب.</p>
-            </div>
-          </li>
+          <li class="goal-item" style="--d:0"><span class="goal-num">01</span><div><h3>أساس علمي ولغوي متين</h3><p>تمكين الطلبة من القراءة والكتابة والحساب بالعربية.</p></div></li>
+          <li class="goal-item" style="--d:1"><span class="goal-num">02</span><div><h3>قيم وانضباط ومواطنة</h3><p>بناء سلوك مسؤول واحترام للنظام والمجتمع.</p></div></li>
+          <li class="goal-item" style="--d:2"><span class="goal-num">03</span><div><h3>رعاية متكافئة في الريف</h3><p>فرصة تعليم عادلة في بيئة ريفية نائية.</p></div></li>
+          <li class="goal-item" style="--d:3"><span class="goal-num">04</span><div><h3>بيانات دقيقة عبر EMIS</h3><p>تحديث بيانات الطلبة بشفافية ودقة.</p></div></li>
+          <li class="goal-item" style="--d:4"><span class="goal-num">05</span><div><h3>شراكة مع أولياء الأمور</h3><p>تواصل فعّال لمتابعة تقدّم الطالب.</p></div></li>
         </ol>
       </div>
     </section>
@@ -125,23 +90,23 @@
         <div class="section-head reveal">
           <p class="section-kicker">القيادة</p>
           <h2>إدارة المدرسة</h2>
-          <p class="section-lead">ثلاثة أدوار تقود العمل التربوي والإداري يومياً.</p>
+          <p class="section-lead">المدير ثم المعاون ثم مسؤول EMIS.</p>
         </div>
         <div class="leaders">
           <article class="leader principal reveal" style="--d:0">
-            <div class="leader-mark">م</div>
+            <div class="leader-mark">1</div>
             <p class="leader-role">مدير المدرسة</p>
             <h3>رحيم واحد حمادي خلف الخرسة</h3>
             <p>الإشراف العام على العملية التربوية والإدارية.</p>
           </article>
           <article class="leader reveal" style="--d:1">
-            <div class="leader-mark">ع</div>
+            <div class="leader-mark">2</div>
             <p class="leader-role">المعاون</p>
             <h3>حاتم صاحب طالب خلف الخرسة</h3>
             <p>متابعة شؤون الطلبة والانضباط اليومي.</p>
           </article>
           <article class="leader reveal" style="--d:2">
-            <div class="leader-mark">E</div>
+            <div class="leader-mark">3</div>
             <p class="leader-role">مسؤول EMIS</p>
             <h3>سجاد علي فاخر مونس الربيعي</h3>
             <p>إدارة بيانات الطلبة والتحديث الإلكتروني.</p>
@@ -154,17 +119,11 @@
       <div class="section-inner">
         <div class="section-head reveal">
           <p class="section-kicker">الكادر</p>
-          <h2>أسرة تعليمية واحدة</h2>
-          <p class="section-lead">ابحث بالاسم — القائمة تتحدّث فوراً.</p>
+          <h2>مرتّب: القيادة → الرجال → السيدات</h2>
+          <p class="section-lead">ابحث بالاسم — القائمة منظمة ومتتابعة.</p>
         </div>
         <div class="staff-toolbar reveal">
-          <input
-            id="staffSearch"
-            class="staff-search"
-            type="search"
-            placeholder="ابحث باسم المعلم أو المعلمة..."
-            autocomplete="off"
-          />
+          <input id="staffSearch" class="staff-search" type="search" placeholder="ابحث بالاسم..." autocomplete="off" />
           <div class="staff-count" id="staffCount"></div>
         </div>
         <div class="staff-grid" id="staffGrid" aria-live="polite"></div>
@@ -176,8 +135,8 @@
         <div class="cta-band reveal">
           <div>
             <p class="section-kicker">خدمات إلكترونية</p>
-            <h2>حدّث بيانات الطالب الآن</h2>
-            <p class="section-lead">استمارة منفصلة للإرسال، وسجل محفوظ للإدارة فقط.</p>
+            <h2>حدّث بيانات الطالب</h2>
+            <p class="section-lead">استمارة منفصلة، وسجل محفوظ للإدارة.</p>
           </div>
           <div class="cta-actions">
             <a class="btn btn-primary" href="/form">فتح الاستمارة</a>
