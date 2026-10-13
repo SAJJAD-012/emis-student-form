@@ -13,9 +13,19 @@ services:
         value: "20"
       - key: NODE_ENV
         value: production
+      - key: DATA_DIR
+        value: /opt/render/project/src/data
+      - key: GITHUB_DATA_OWNER
+        value: SAJJAD-012
+      - key: GITHUB_DATA_REPO
+        value: emis-student-data
+      - key: GITHUB_DATA_BRANCH
+        value: main
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
       - key: ADMIN_PASSWORD
+        sync: false
+      - key: GITHUB_DATA_TOKEN
         sync: false

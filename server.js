@@ -7,7 +7,8 @@ const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 const { buildDocumentsCollage } = require("./collage");
-const { saveStudentSubmission, listStudents, getStudentById, dataRoot, makeRequestId } = require("./storage");
+const { saveStudentSubmission, listStudents, getStudentById, dataRoot, makeRequestId, ensureDirs } = require("./storage");
+const { restoreFromGitHub, syncStudentFiles } = require("./github-store");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -469,15 +470,25 @@ app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
     setProgress(submissionId, 78, "إنهاء صورة المستمسكات...");
     collagePath = await collagePromise;
 
-    setProgress(submissionId, 86, "حفظ السجل...");
-    const saved = saveStudentSubmission({
+    setProgress(submissionId, 86, "حفظ السجل وصورة الطالب...");
+    const photoPath = req.files?.studentPhoto?.[0]?.path || null;
+    const saved = await saveStudentSubmission({
       body: b,
       fullName,
       collagePath,
+      photoPath,
       requestId,
     });
 
-    setProgress(submissionId, 92, "رفع المستمسكات إلى تيليجرام...");
+    // نسخة دائمة على GitHub حتى لا تختفي بعد النشر
+    setProgress(submissionId, 90, "حفظ نسخة دائمة من السجل...");
+    try {
+      await syncStudentFiles(dataRoot, saved.syncedPaths, requestId);
+    } catch (syncErr) {
+      console.error("فشل النسخ الاحتياطي على GitHub:", syncErr.message);
+    }
+
+    setProgress(submissionId, 94, "رفع المستمسكات إلى تيليجرام...");
     await sendTelegramPhoto(
       collagePath,
       `🔖 ${escapeHtml(requestId)}\n🖼 مستمسكات: ${escapeHtml(fullName)} | ${escapeHtml(b.grade || "")} / ${escapeHtml(b.section || "")}`,
@@ -499,6 +510,7 @@ app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
         id: saved.id,
         grade: saved.grade,
         section: saved.section,
+        photo: saved.photo,
       },
     });
   } catch (err) {
@@ -526,12 +538,24 @@ app.use((err, _req, res, _next) => {
   res.status(400).json({ ok: false, error: err.message || "خطأ في الطلب" });
 });
 
-app.listen(PORT, () => {
-  console.log(`EMIS form running at http://localhost:${PORT}`);
-  console.log(`Bot token: ...${BOT_TOKEN.slice(-8)}`);
-  if (activeChatId) {
-    console.log(`Chat ID جاهز: ${activeChatId}`);
-  } else {
-    console.warn("أرسل /start إلى @qatar_emis_bot ثم اضغط إرسال في الاستمارة");
+async function boot() {
+  ensureDirs();
+  try {
+    await restoreFromGitHub(dataRoot);
+  } catch (err) {
+    console.error("تعذّر استرجاع السجل من GitHub:", err.message);
   }
-});
+
+  app.listen(PORT, () => {
+    console.log(`EMIS form running at http://localhost:${PORT}`);
+    console.log(`Data dir: ${dataRoot}`);
+    console.log(`Bot token: ...${BOT_TOKEN.slice(-8)}`);
+    if (activeChatId) {
+      console.log(`Chat ID جاهز: ${activeChatId}`);
+    } else {
+      console.warn("أرسل /start إلى @qatar_emis_bot ثم اضغط إرسال في الاستمارة");
+    }
+  });
+}
+
+boot();

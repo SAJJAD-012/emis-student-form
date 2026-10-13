@@ -1,13 +1,17 @@
 const fs = require("fs");
 const path = require("path");
+const sharp = require("sharp");
 
-const dataRoot = path.join(__dirname, "data");
+const dataRoot = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(__dirname, "data");
 const registryPath = path.join(dataRoot, "registry.json");
 const studentsRoot = path.join(dataRoot, "students");
 const collagesRoot = path.join(dataRoot, "collages");
+const photosRoot = path.join(dataRoot, "photos");
 
 function ensureDirs() {
-  for (const dir of [dataRoot, studentsRoot, collagesRoot]) {
+  for (const dir of [dataRoot, studentsRoot, collagesRoot, photosRoot]) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   }
 }
@@ -47,7 +51,26 @@ function makeRequestId() {
   return `QTR-${yy}${mm}${dd}-${rand}`;
 }
 
-function buildStudentRecord(body, fullName, collageRelativePath, requestId) {
+async function saveStudentPhoto(photoPath, requestId, fullName) {
+  if (!photoPath || !fs.existsSync(photoPath)) return null;
+  ensureDirs();
+  const fileName = `${requestId}-${safeSegment(fullName, "student")}.jpg`;
+  const dest = path.join(photosRoot, fileName);
+  await sharp(photoPath, { failOn: "none", limitInputPixels: false })
+    .rotate()
+    .resize({
+      width: 900,
+      height: 1200,
+      fit: "inside",
+      withoutEnlargement: true,
+      kernel: sharp.kernel.lanczos3,
+    })
+    .jpeg({ quality: 92, mozjpeg: true, chromaSubsampling: "4:4:4" })
+    .toFile(dest);
+  return path.join("photos", fileName).replace(/\\/g, "/");
+}
+
+function buildStudentRecord(body, fullName, { collageRelativePath, photoRelativePath, requestId }) {
   const id = requestId || makeRequestId();
   return {
     id,
@@ -94,33 +117,41 @@ function buildStudentRecord(body, fullName, collageRelativePath, requestId) {
       livingLevel: body.livingLevel || "",
       notes: body.notes || "",
     },
+    photo: photoRelativePath || null,
     collage: collageRelativePath || null,
   };
 }
 
 /**
- * يحفظ الطالب محلياً ويرتّبه حسب الصف والشعبة
+ * يحفظ الطالب محلياً ويرتّبه حسب الصف والشعبة (مع صورة الطالب)
  */
-function saveStudentSubmission({ body, fullName, collagePath, requestId }) {
+async function saveStudentSubmission({ body, fullName, collagePath, photoPath, requestId }) {
   ensureDirs();
 
   const grade = body.grade || "غير محدد";
   const section = body.section || "أ";
   const gradeKey = safeSegment(grade);
   const sectionKey = safeSegment(section);
+  const id = requestId || makeRequestId();
 
   const gradeDir = path.join(studentsRoot, gradeKey, sectionKey);
   fs.mkdirSync(gradeDir, { recursive: true });
 
   let collageRelative = null;
   if (collagePath && fs.existsSync(collagePath)) {
-    const collageName = `${Date.now()}-${safeSegment(fullName, "student")}.jpg`;
+    const collageName = `${id}-${safeSegment(fullName, "student")}.jpg`;
     const dest = path.join(collagesRoot, collageName);
     fs.copyFileSync(collagePath, dest);
     collageRelative = path.join("collages", collageName).replace(/\\/g, "/");
   }
 
-  const record = buildStudentRecord(body, fullName, collageRelative, requestId);
+  const photoRelative = await saveStudentPhoto(photoPath, id, fullName);
+
+  const record = buildStudentRecord(body, fullName, {
+    collageRelativePath: collageRelative,
+    photoRelativePath: photoRelative,
+    requestId: id,
+  });
   const fileName = `${record.id}.json`;
   const absoluteJson = path.join(gradeDir, fileName);
   fs.writeFileSync(absoluteJson, JSON.stringify(record, null, 2), "utf8");
@@ -133,17 +164,24 @@ function saveStudentSubmission({ body, fullName, collagePath, requestId }) {
   if (!registry.grades[grade]) registry.grades[grade] = {};
   if (!registry.grades[grade][section]) registry.grades[grade][section] = [];
 
+  registry.grades[grade][section] = registry.grades[grade][section].filter((s) => s.id !== record.id);
   registry.grades[grade][section].push({
     id: record.id,
     fullName: record.fullName,
     phone: record.contact.phone,
     nationalId: record.contact.nationalId,
+    birthDate: record.personal.birthDate,
+    gender: record.personal.gender,
     savedAt: record.savedAt,
     file: relativeJson,
+    photo: photoRelative,
     collage: collageRelative,
   });
 
-  registry.total = (registry.total || 0) + 1;
+  registry.total = Object.values(registry.grades).reduce(
+    (sum, secs) => sum + Object.values(secs).reduce((a, arr) => a + arr.length, 0),
+    0
+  );
   saveRegistry(registry);
 
   return {
@@ -151,7 +189,9 @@ function saveStudentSubmission({ body, fullName, collagePath, requestId }) {
     grade,
     section,
     file: relativeJson,
+    photo: photoRelative,
     collage: collageRelative,
+    syncedPaths: ["registry.json", relativeJson, photoRelative, collageRelative].filter(Boolean),
     record,
   };
 }
@@ -190,4 +230,5 @@ module.exports = {
   listStudents,
   getStudentById,
   loadRegistry,
+  ensureDirs,
 };
