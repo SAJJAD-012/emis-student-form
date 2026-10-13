@@ -358,10 +358,17 @@ function setProgress(id, percent, status) {
   const key = String(id || "").trim();
   if (!key) return;
   progressJobs.set(key, {
-    percent: Math.max(0, Math.min(99, Math.round(percent))),
+    percent: Math.max(0, Math.min(100, Math.round(percent))),
     status,
     updatedAt: Date.now(),
   });
+}
+
+function releasePendingClaim(id) {
+  const key = String(id || "").trim();
+  if (!key) return;
+  const prev = recentSubmissionIds.get(key);
+  if (prev?.pending) recentSubmissionIds.delete(key);
 }
 
 function claimSubmissionId(id) {
@@ -422,33 +429,34 @@ app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
       .filter(Boolean)
       .join(" ");
 
-    setProgress(submissionId, 62, "إرسال البيانات الكاملة إلى تيليجرام...");
+    // رسالة كاملة + كولاج في نفس الوقت لتوفير الوقت
+    setProgress(submissionId, 65, "إرسال البيانات وتجهيز المستمسكات...");
     const message = buildFormattedMessage(b, fullName);
-    await sendTelegramMessage(message, chatId);
-
-    setProgress(submissionId, 72, "تجهيز صورة المستمسكات بسرعة...");
-    collagePath = await buildDocumentsCollage(req.files, {
+    const collagePromise = buildDocumentsCollage(req.files, {
       fullName,
       schoolName: b.schoolName || "مدرسة قطر",
       outDir: uploadDir,
       details: b,
     });
+    await sendTelegramMessage(message, chatId);
+    setProgress(submissionId, 78, "إنهاء صورة المستمسكات...");
+    collagePath = await collagePromise;
 
-    setProgress(submissionId, 84, "حفظ السجل المحلي...");
+    setProgress(submissionId, 86, "حفظ السجل...");
     const saved = saveStudentSubmission({
       body: b,
       fullName,
       collagePath,
     });
 
-    setProgress(submissionId, 90, "رفع المستمسكات إلى تيليجرام...");
+    setProgress(submissionId, 92, "رفع المستمسكات إلى تيليجرام...");
     await sendTelegramPhoto(
       collagePath,
       `🖼 مستمسكات: ${escapeHtml(fullName)} | ${escapeHtml(b.grade || "")} / ${escapeHtml(b.section || "")}`,
       chatId
     );
 
-    setProgress(submissionId, 99, "اكتمل الإرسال");
+    setProgress(submissionId, 100, "اكتمل الإرسال");
     rememberSubmissionId(submissionId, {
       id: saved.id,
       grade: saved.grade,
@@ -468,7 +476,8 @@ app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
   } catch (err) {
     cleanupFiles(req.files, [collagePath]);
     console.error(err);
-    setProgress(submissionId, 55, err.message || "فشل الإرسال");
+    releasePendingClaim(submissionId);
+    setProgress(submissionId, 0, err.message || "فشل الإرسال");
     res.status(500).json({ ok: false, error: err.message || "حدث خطأ أثناء الإرسال" });
   }
 });

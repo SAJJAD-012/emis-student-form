@@ -178,7 +178,7 @@ function pollServerProgress(submissionId, onProgress) {
       const data = await res.json();
       if (data?.percent != null) onProgress(data.percent, data.status || "جاري المعالجة...");
     } catch (_) {}
-  }, 350);
+  }, 250);
   return () => {
     stopped = true;
     clearInterval(timer);

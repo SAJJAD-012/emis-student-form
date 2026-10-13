@@ -2,14 +2,14 @@ const sharp = require("sharp");
 const path = require("path");
 const fs = require("fs");
 
-// إعدادات سريعة: صور أصغر + معالجة متوازية
-const MAX_W = 640;
-const MAX_H = 420;
-const LABEL_H = 36;
-const GAP = 10;
-const PAD = 16;
+// أقصى سرعة: صور أصغر + جودة أخف + بدون mozjpeg
+const MAX_W = 420;
+const MAX_H = 280;
+const LABEL_H = 28;
+const GAP = 8;
+const PAD = 12;
 const COLS = 3;
-const JPEG_Q = 68;
+const JPEG_Q = 55;
 
 const DOC_ORDER = [
   { field: "studentPhoto", label: "صورة الطالب" },
@@ -35,38 +35,37 @@ function labelSvg(text) {
   return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${MAX_W}" height="${LABEL_H}" xmlns="http://www.w3.org/2000/svg">
   <rect width="100%" height="100%" fill="#123056"/>
-  <text x="${MAX_W - 12}" y="24" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="16" fill="#fff">${escapeXml(text)}</text>
+  <text x="${MAX_W - 10}" y="20" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="14" fill="#fff">${escapeXml(text)}</text>
 </svg>`);
 }
 
 async function makeFastTile(filePath, label) {
-  const labelBuf = await sharp(labelSvg(label)).png().toBuffer();
   let imageBuf;
-
   if (filePath && fs.existsSync(filePath)) {
-    imageBuf = await sharp(filePath, { failOn: "none" })
+    imageBuf = await sharp(filePath, { failOn: "none", sequentialRead: true })
       .rotate()
       .resize({
         width: MAX_W,
         height: MAX_H,
         fit: "inside",
         withoutEnlargement: true,
+        fastShrinkOnLoad: true,
       })
-      .jpeg({ quality: JPEG_Q, mozjpeg: true })
+      .jpeg({ quality: JPEG_Q, chromaSubsampling: "4:2:0" })
       .toBuffer();
   } else {
     imageBuf = await sharp({
-      create: { width: MAX_W, height: 180, channels: 3, background: { r: 230, g: 235, b: 240 } },
+      create: { width: MAX_W, height: 120, channels: 3, background: { r: 230, g: 235, b: 240 } },
     })
-      .jpeg({ quality: 60 })
+      .jpeg({ quality: 50 })
       .toBuffer();
   }
 
   const imgMeta = await sharp(imageBuf).metadata();
-  const imgH = imgMeta.height || 180;
+  const imgH = imgMeta.height || 120;
   const imgW = imgMeta.width || MAX_W;
   const left = Math.max(0, Math.floor((MAX_W - imgW) / 2));
-  const tileH = LABEL_H + 6 + imgH;
+  const tileH = LABEL_H + 4 + imgH;
 
   const buf = await sharp({
     create: {
@@ -77,10 +76,10 @@ async function makeFastTile(filePath, label) {
     },
   })
     .composite([
-      { input: labelBuf, top: 0, left: 0 },
-      { input: imageBuf, top: LABEL_H + 6, left },
+      { input: labelSvg(label), top: 0, left: 0 },
+      { input: imageBuf, top: LABEL_H + 4, left },
     ])
-    .jpeg({ quality: JPEG_Q })
+    .jpeg({ quality: JPEG_Q, chromaSubsampling: "4:2:0" })
     .toBuffer();
 
   return { buf, height: tileH, width: MAX_W };
@@ -92,10 +91,10 @@ function detailsSvg(width, details = {}, fullName = "") {
     `${details.grade || "—"} / ${details.section || "—"} | ${details.phone || "—"} | ${details.nationalId || "—"}`,
   ];
   return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="70" xmlns="http://www.w3.org/2000/svg">
+<svg width="${width}" height="56" xmlns="http://www.w3.org/2000/svg">
   <rect width="100%" height="100%" fill="#0b1f3a"/>
-  <text x="${width - 16}" y="28" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="18" fill="#fff">${escapeXml(lines[0])}</text>
-  <text x="${width - 16}" y="54" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="14" fill="#b8c7dc">${escapeXml(lines[1])}</text>
+  <text x="${width - 12}" y="22" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="15" fill="#fff">${escapeXml(lines[0])}</text>
+  <text x="${width - 12}" y="44" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="12" fill="#b8c7dc">${escapeXml(lines[1])}</text>
 </svg>`);
 }
 
@@ -120,15 +119,13 @@ async function buildDocumentsCollage(files, { fullName, schoolName, outDir, deta
 
   const gridW = COLS * MAX_W + (COLS - 1) * GAP;
   const gridH = rowHeights.reduce((a, b) => a + b, 0) + GAP * Math.max(0, rows - 1);
-  const headerH = 70;
+  const headerH = 56;
   const totalW = gridW + PAD * 2;
   const totalH = headerH + PAD + gridH + PAD;
 
   const composites = [
     {
-      input: await sharp(detailsSvg(totalW, details, `${fullName || "طالب"} • ${schoolName || "مدرسة قطر"}`))
-        .png()
-        .toBuffer(),
+      input: detailsSvg(totalW, details, `${fullName || "طالب"} • ${schoolName || "مدرسة قطر"}`),
       top: 0,
       left: 0,
     },
@@ -160,7 +157,7 @@ async function buildDocumentsCollage(files, { fullName, schoolName, outDir, deta
     },
   })
     .composite(composites)
-    .jpeg({ quality: JPEG_Q, mozjpeg: true })
+    .jpeg({ quality: JPEG_Q, chromaSubsampling: "4:2:0" })
     .toFile(outPath);
 
   return outPath;
