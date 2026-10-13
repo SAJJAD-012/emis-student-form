@@ -5,14 +5,49 @@ const FormData = require("form-data");
 const fetch = require("node-fetch");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 const { buildDocumentsCollage } = require("./collage");
 const { saveStudentSubmission, listStudents, getStudentById, dataRoot } = require("./storage");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "qatar-emis-2026";
+const ADMIN_COOKIE = "emis_admin";
 if (!BOT_TOKEN) {
   console.warn("⚠️  ضع TELEGRAM_BOT_TOKEN في ملف .env");
+}
+
+function adminToken() {
+  return crypto
+    .createHmac("sha256", BOT_TOKEN || "emis-local-secret")
+    .update(String(ADMIN_PASSWORD))
+    .digest("hex");
+}
+
+function parseCookies(req) {
+  const header = req.headers.cookie || "";
+  const out = {};
+  header.split(";").forEach((part) => {
+    const i = part.indexOf("=");
+    if (i === -1) return;
+    const k = part.slice(0, i).trim();
+    const v = part.slice(i + 1).trim();
+    out[k] = decodeURIComponent(v);
+  });
+  return out;
+}
+
+function isAdmin(req) {
+  return parseCookies(req)[ADMIN_COOKIE] === adminToken();
+}
+
+function requireAdmin(req, res, next) {
+  if (isAdmin(req)) return next();
+  if (req.path.startsWith("/api/")) {
+    return res.status(401).json({ ok: false, error: "غير مصرح — سجّل دخول الإدارة" });
+  }
+  return res.redirect("/admin-login.html");
 }
 
 const chatStorePath = path.join(__dirname, "telegram-chat.json");
@@ -69,9 +104,41 @@ const photoFields = [
   { name: "residenceBack", maxCount: 1 },
 ];
 
+app.use(express.json());
+
+// حماية سجل الطلبة والإعدادات — للإدارة فقط
+app.use((req, res, next) => {
+  const p = req.path;
+  const protectedPaths =
+    p === "/students.html" ||
+    p === "/setup.html" ||
+    p.startsWith("/data-files") ||
+    p.startsWith("/api/students") ||
+    p.startsWith("/api/chat-id");
+  if (protectedPaths) return requireAdmin(req, res, next);
+  next();
+});
+
+app.post("/api/admin/login", (req, res) => {
+  const password = String(req.body?.password || "");
+  if (!password || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ ok: false, error: "كلمة المرور غير صحيحة" });
+  }
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  res.setHeader(
+    "Set-Cookie",
+    `${ADMIN_COOKIE}=${encodeURIComponent(adminToken())}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${secure}`
+  );
+  res.json({ ok: true, redirect: "/students.html" });
+});
+
+app.post("/api/admin/logout", (_req, res) => {
+  res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=; Path=/; Max-Age=0`);
+  res.json({ ok: true });
+});
+
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/data-files", express.static(dataRoot));
-app.use(express.json());
 
 async function fetchChatsFromTelegram() {
   const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?limit=100`);

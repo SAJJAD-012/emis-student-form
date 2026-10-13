@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>دخول الإدارة | EMIS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .box { max-width: 420px; margin: -20px auto 40px; padding: 0 16px; position: relative; z-index: 1; }
+    .box .card { padding: 28px; }
+    .box input {
+      width: 100%; font: inherit; padding: 12px; border-radius: 10px; border: 1px solid var(--border); margin: 12px 0 16px;
+    }
+    .err { color: #b42318; font-weight: 600; min-height: 1.4em; }
+  </style>
+</head>
+<body>
+  <header class="hero" style="padding-bottom: 40px">
+    <div class="hero-inner">
+      <h1 style="font-size: 1.7rem">دخول الإدارة</h1>
+      <p class="hero-desc">سجل الطلبة خاص بالإدارة فقط.</p>
+    </div>
+  </header>
+  <div class="box">
+    <div class="card">
+      <label class="field">
+        <span>كلمة المرور</span>
+        <input id="password" type="password" autocomplete="current-password" />
+      </label>
+      <p class="err" id="err"></p>
+      <button class="submit-btn" type="button" id="loginBtn" style="width:100%">دخول</button>
+      <p style="margin-top:16px"><a href="/" style="color:var(--accent);font-weight:700">العودة للاستمارة</a></p>
+    </div>
+  </div>
+  <script>
+    const btn = document.getElementById("loginBtn");
+    const err = document.getElementById("err");
+    async function login() {
+      err.textContent = "";
+      btn.disabled = true;
+      try {
+        const res = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: document.getElementById("password").value }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "فشل الدخول");
+        location.href = data.redirect || "/students.html";
+      } catch (e) {
+        err.textContent = e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    btn.addEventListener("click", login);
+    document.getElementById("password").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") login();
+    });
+  </script>
+</body>
+</html>

@@ -45,7 +45,10 @@
 <body>
   <header class="hero" style="padding-bottom: 40px">
     <div class="hero-inner">
-      <div class="top-links"><a href="/">← العودة للاستمارة</a></div>
+      <div class="top-links" style="display:flex;gap:16px;flex-wrap:wrap">
+        <a href="/">← العودة للاستمارة</a>
+        <a href="#" id="logoutLink">تسجيل الخروج</a>
+      </div>
       <h1 style="font-size: 1.8rem">سجل الطلبة المحفوظ</h1>
       <p class="hero-desc">مرتّب حسب الصف ثم الشعبة — مع كامل المعلومات المرسلة.</p>
     </div>
@@ -180,6 +183,11 @@
     gradeFilter.addEventListener("change", () => { updateSectionOptions(); render(); });
     sectionFilter.addEventListener("change", render);
     search.addEventListener("input", render);
+    document.getElementById("logoutLink")?.addEventListener("click", async (e) => {
+      e.preventDefault();
+      await fetch("/api/admin/logout", { method: "POST" });
+      location.href = "/admin-login.html";
+    });
     load();
   </script>
 </body>
