@@ -151,9 +151,11 @@ function uploadWithProgress(formData, onProgress) {
     xhr.upload.onprogress = (e) => {
       if (!e.lengthComputable) return;
       const ratio = e.loaded / e.total;
-      // الرفع يمثل حتى 55% من الشريط
-      onProgress(8 + ratio * 47, "جاري رفع البيانات والصور...");
+      // الرفع: 5% → 55%
+      onProgress(5 + ratio * 50, "جاري رفع البيانات والصور...");
     };
+
+    xhr.upload.onload = () => onProgress(55, "اكتمل الرفع — بدء معالجة الخادم...");
 
     xhr.onload = () => {
       const body = xhr.response || {};
@@ -165,6 +167,22 @@ function uploadWithProgress(formData, onProgress) {
     xhr.timeout = 10 * 60 * 1000;
     xhr.send(formData);
   });
+}
+
+function pollServerProgress(submissionId, onProgress) {
+  let stopped = false;
+  const timer = setInterval(async () => {
+    if (stopped) return;
+    try {
+      const res = await fetch(`/api/progress/${encodeURIComponent(submissionId)}`);
+      const data = await res.json();
+      if (data?.percent != null) onProgress(data.percent, data.status || "جاري المعالجة...");
+    } catch (_) {}
+  }, 350);
+  return () => {
+    stopped = true;
+    clearInterval(timer);
+  };
 }
 
 form.addEventListener("submit", async (e) => {
@@ -183,34 +201,26 @@ form.addEventListener("submit", async (e) => {
   nextBtn && (nextBtn.disabled = true);
   prevBtn && (prevBtn.disabled = true);
 
+  const submissionId = crypto.randomUUID();
   const data = new FormData(form);
-  data.append("submissionId", crypto.randomUUID());
+  data.append("submissionId", submissionId);
 
   openSendOverlay(true);
-  setSendProgress(5, "التحقق من البيانات...");
+  setSendProgress(3, "التحقق من البيانات...");
 
-  // محاكاة مراحل ما بعد الرفع أثناء انتظار الخادم
-  let fake = 56;
-  const tick = setInterval(() => {
-    if (fake < 90) {
-      fake += 2;
-      const msg =
-        fake < 70
-          ? "تجميع المستمسكات في صورة واحدة..."
-          : fake < 82
-            ? "حفظ السجل المحلي..."
-            : "إرسال إلى تيليجرام...";
-      setSendProgress(fake, msg);
-    }
-  }, 700);
-
+  let stopPoll = null;
   try {
-    setSendProgress(8, "بدء رفع الملفات...");
-    const json = await uploadWithProgress(data, setSendProgress);
-    clearInterval(tick);
+    setSendProgress(5, "بدء رفع الملفات...");
+    // بعد اكتمال الرفع نتابع نسبة التقدم من الخادم (لا يتوقف عند 55)
+    const uploadPromise = uploadWithProgress(data, (p, s) => {
+      setSendProgress(p, s);
+      if (p >= 55 && !stopPoll) stopPoll = pollServerProgress(submissionId, setSendProgress);
+    });
+    const json = await uploadPromise;
+    if (stopPoll) stopPoll();
     setSendProgress(100, "تم الإرسال بنجاح");
-    await new Promise((r) => setTimeout(r, 500));
-    showToast("تم إرسال الاستمارة مرة واحدة بنجاح إلى تيليجرام", "success");
+    await new Promise((r) => setTimeout(r, 350));
+    showToast("تم إرسال البيانات الكاملة والمستمسكات", "success");
     form.reset();
     form.querySelector('[name="governorate"]').value = "ميسان";
     form.querySelector('[name="schoolName"]').value = "مدرسة قطر";
@@ -222,10 +232,10 @@ form.addEventListener("submit", async (e) => {
     showStep(0);
     console.debug("saved", json.saved);
   } catch (err) {
-    clearInterval(tick);
+    if (stopPoll) stopPoll();
     showToast(err.message || "حدث خطأ أثناء الإرسال", "error");
   } finally {
-    clearInterval(tick);
+    if (stopPoll) stopPoll();
     openSendOverlay(false);
     isSubmitting = false;
     submitBtn.disabled = false;

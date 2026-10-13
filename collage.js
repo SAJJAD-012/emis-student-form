@@ -2,21 +2,25 @@ const sharp = require("sharp");
 const path = require("path");
 const fs = require("fs");
 
-const MAX_WIDTH = 1800; // عرض أقصى بدون تكبير — الصور الأصغر تبقى بحجمها
-const LABEL_H = 52;
-const GAP = 20;
-const PAD = 28;
+// إعدادات سريعة: صور أصغر + معالجة متوازية
+const MAX_W = 640;
+const MAX_H = 420;
+const LABEL_H = 36;
+const GAP = 10;
+const PAD = 16;
+const COLS = 3;
+const JPEG_Q = 68;
 
 const DOC_ORDER = [
   { field: "studentPhoto", label: "صورة الطالب" },
-  { field: "studentIdFront", label: "بطاقة الطالب — الوجه" },
-  { field: "studentIdBack", label: "بطاقة الطالب — الظهر" },
-  { field: "fatherIdFront", label: "بطاقة الأب — الوجه" },
-  { field: "fatherIdBack", label: "بطاقة الأب — الظهر" },
-  { field: "motherIdFront", label: "بطاقة الأم — الوجه" },
-  { field: "motherIdBack", label: "بطاقة الأم — الظهر" },
-  { field: "residenceFront", label: "بطاقة السكن — الوجه" },
-  { field: "residenceBack", label: "بطاقة السكن — الظهر" },
+  { field: "studentIdFront", label: "طالب — وجه" },
+  { field: "studentIdBack", label: "طالب — ظهر" },
+  { field: "fatherIdFront", label: "أب — وجه" },
+  { field: "fatherIdBack", label: "أب — ظهر" },
+  { field: "motherIdFront", label: "أم — وجه" },
+  { field: "motherIdBack", label: "أم — ظهر" },
+  { field: "residenceFront", label: "سكن — وجه" },
+  { field: "residenceBack", label: "سكن — ظهر" },
 ];
 
 function escapeXml(s) {
@@ -27,207 +31,122 @@ function escapeXml(s) {
     .replace(/"/g, "&quot;");
 }
 
-function headerSvg(width, title, subtitle) {
+function labelSvg(text) {
   return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="120" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0b1f3a"/>
-      <stop offset="100%" stop-color="#123056"/>
-    </linearGradient>
-  </defs>
-  <rect width="100%" height="100%" fill="url(#g)"/>
-  <rect x="0" y="0" width="10" height="120" fill="#2f6fed"/>
-  <text x="${width - 32}" y="48" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="28" font-weight="700" fill="#ffffff">${escapeXml(title)}</text>
-  <text x="${width - 32}" y="86" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="18" fill="#b8c7dc">${escapeXml(subtitle)}</text>
+<svg width="${MAX_W}" height="${LABEL_H}" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="#123056"/>
+  <text x="${MAX_W - 12}" y="24" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="16" fill="#fff">${escapeXml(text)}</text>
 </svg>`);
 }
 
-function detailsPanelSvg(width, details = {}, fullName = "") {
-  const lines = [
-    `الاسم: ${fullName || "—"}`,
-    `الأم: ${details.motherName || "—"} | الميلاد: ${details.birthDate || "—"} | الجنس: ${details.gender || "—"}`,
-    `الهاتف: ${details.phone || "—"} | البطاقة: ${details.nationalId || "—"} | الدم: ${details.bloodType || "—"}`,
-    `الصف: ${details.grade || "—"} / شعبة ${details.section || "—"} | المدرسة: ${details.schoolName || "مدرسة قطر"}`,
-    `العنوان: ${details.governorate || "ميسان"} - ${details.district || "—"} - ${details.neighborhood || "—"} - دار ${details.houseNumber || "—"}`,
-  ];
-  const rowH = 34;
-  const height = 28 + lines.length * rowH;
-  const texts = lines
-    .map(
-      (line, i) =>
-        `<text x="${width - 24}" y="${36 + i * rowH}" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="20" fill="#1a2332">${escapeXml(line)}</text>`
-    )
-    .join("");
-  return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100%" height="100%" rx="14" ry="14" fill="#ffffff" stroke="#d5dde8" stroke-width="2"/>
-  ${texts}
-</svg>`);
-}
-
-function labelSvg(width, text) {
-  return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="${LABEL_H}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100%" height="100%" rx="10" ry="10" fill="#123056"/>
-  <text x="${width - 20}" y="${LABEL_H / 2 + 7}" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="20" font-weight="600" fill="#ffffff">${escapeXml(text)}</text>
-</svg>`);
-}
-
-function placeholderSvg(width, height, text) {
-  return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100%" height="100%" rx="12" ry="12" fill="#e8eef6" stroke="#c5d0e0" stroke-width="2"/>
-  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Segoe UI, Tahoma, Arial" font-size="22" fill="#7a8aa0">${escapeXml(text)}</text>
-</svg>`);
-}
-
-/**
- * يجهّز الصورة كاملة بدون قص — تصغير العرض فقط إذا تجاوز الحد
- */
-async function loadFullImage(filePath) {
-  const base = sharp(filePath, { failOn: "none" }).rotate();
-  const meta = await base.metadata();
-  const srcW = meta.width || MAX_WIDTH;
-  const srcH = meta.height || Math.round(MAX_WIDTH * 0.7);
-
-  const targetW = Math.min(srcW, MAX_WIDTH);
-  const pipeline =
-    srcW > MAX_WIDTH
-      ? base.resize({
-          width: MAX_WIDTH,
-          withoutEnlargement: true,
-          fit: "inside", // يحافظ على النسبة كاملة بلا قص
-        })
-      : base;
-
-  const buf = await pipeline.jpeg({ quality: 95, mozjpeg: true }).toBuffer();
-  const outMeta = await sharp(buf).metadata();
-  return {
-    buf,
-    width: outMeta.width || targetW,
-    height: outMeta.height || Math.round((targetW * srcH) / srcW),
-  };
-}
-
-async function makeBlock(filePath, label, canvasWidth) {
-  const labelBuf = await sharp(labelSvg(canvasWidth, label)).png().toBuffer();
-
+async function makeFastTile(filePath, label) {
+  const labelBuf = await sharp(labelSvg(label)).png().toBuffer();
   let imageBuf;
-  let imgW;
-  let imgH;
 
   if (filePath && fs.existsSync(filePath)) {
-    const loaded = await loadFullImage(filePath);
-    imageBuf = loaded.buf;
-    imgW = loaded.width;
-    imgH = loaded.height;
+    imageBuf = await sharp(filePath, { failOn: "none" })
+      .rotate()
+      .resize({
+        width: MAX_W,
+        height: MAX_H,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .jpeg({ quality: JPEG_Q, mozjpeg: true })
+      .toBuffer();
   } else {
-    imgW = canvasWidth;
-    imgH = 280;
-    imageBuf = await sharp(placeholderSvg(imgW, imgH, "غير متوفر")).png().toBuffer();
+    imageBuf = await sharp({
+      create: { width: MAX_W, height: 180, channels: 3, background: { r: 230, g: 235, b: 240 } },
+    })
+      .jpeg({ quality: 60 })
+      .toBuffer();
   }
 
-  // ضع الصورة في منتصف العرض إن كانت أضيق من اللوحة — بدون قص
-  const left = Math.max(0, Math.floor((canvasWidth - imgW) / 2));
-  const blockH = LABEL_H + 12 + imgH + 12;
+  const imgMeta = await sharp(imageBuf).metadata();
+  const imgH = imgMeta.height || 180;
+  const imgW = imgMeta.width || MAX_W;
+  const left = Math.max(0, Math.floor((MAX_W - imgW) / 2));
+  const tileH = LABEL_H + 6 + imgH;
 
-  const panelBuf = await sharp(
-    Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${canvasWidth}" height="${imgH + 24}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100%" height="100%" rx="12" ry="12" fill="#f3f5f8" stroke="#d5dde8" stroke-width="2"/>
-</svg>`)
-  )
-    .png()
-    .toBuffer();
-
-  const frame = await sharp({
+  const buf = await sharp({
     create: {
-      width: canvasWidth,
-      height: blockH,
+      width: MAX_W,
+      height: tileH,
       channels: 3,
       background: { r: 255, g: 255, b: 255 },
     },
   })
     .composite([
       { input: labelBuf, top: 0, left: 0 },
-      { input: panelBuf, top: LABEL_H, left: 0 },
-      { input: imageBuf, top: LABEL_H + 12, left },
+      { input: imageBuf, top: LABEL_H + 6, left },
     ])
-    .jpeg({ quality: 95 })
+    .jpeg({ quality: JPEG_Q })
     .toBuffer();
 
-  const frameMeta = await sharp(frame).metadata();
-  return { buf: frame, height: frameMeta.height || blockH };
+  return { buf, height: tileH, width: MAX_W };
+}
+
+function detailsSvg(width, details = {}, fullName = "") {
+  const lines = [
+    fullName || "—",
+    `${details.grade || "—"} / ${details.section || "—"} | ${details.phone || "—"} | ${details.nationalId || "—"}`,
+  ];
+  return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${width}" height="70" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="#0b1f3a"/>
+  <text x="${width - 16}" y="28" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="18" fill="#fff">${escapeXml(lines[0])}</text>
+  <text x="${width - 16}" y="54" text-anchor="end" font-family="Segoe UI, Tahoma, Arial" font-size="14" fill="#b8c7dc">${escapeXml(lines[1])}</text>
+</svg>`);
 }
 
 /**
- * يجمع المستمسكات عمودياً — كل صورة كاملة وواضحة بدون قص
+ * تجميع سريع للمستمسكات (شبكة 3 أعمدة + صور مضغوطة)
  */
 async function buildDocumentsCollage(files, { fullName, schoolName, outDir, details = {} }) {
-  // حدّد عرض اللوحة حسب أكبر صورة (بعد التصغير الآمن)
-  let contentWidth = 900;
-  for (const doc of DOC_ORDER) {
-    const file = files?.[doc.field]?.[0];
-    if (!file?.path || !fs.existsSync(file.path)) continue;
-    try {
-      const meta = await sharp(file.path).rotate().metadata();
-      const w = Math.min(meta.width || 900, MAX_WIDTH);
-      if (w > contentWidth) contentWidth = w;
-    } catch (_) {}
+  const tiles = await Promise.all(
+    DOC_ORDER.map((doc) => makeFastTile(files?.[doc.field]?.[0]?.path, doc.label))
+  );
+
+  const rows = Math.ceil(tiles.length / COLS);
+  const rowHeights = [];
+  for (let r = 0; r < rows; r += 1) {
+    let h = 0;
+    for (let c = 0; c < COLS; c += 1) {
+      const t = tiles[r * COLS + c];
+      if (t) h = Math.max(h, t.height);
+    }
+    rowHeights.push(h);
   }
 
-  const totalW = contentWidth + PAD * 2;
-  const blocks = [];
-  for (const doc of DOC_ORDER) {
-    const file = files?.[doc.field]?.[0];
-    blocks.push(await makeBlock(file?.path, doc.label, contentWidth));
-  }
-
-  const detailsBuf = await sharp(detailsPanelSvg(contentWidth, details, fullName)).png().toBuffer();
-  const detailsMeta = await sharp(detailsBuf).metadata();
-  const detailsH = detailsMeta.height || 200;
-
-  const headerH = 120;
-  const footerH = 52;
-  const blocksH = blocks.reduce((sum, b) => sum + b.height, 0) + GAP * Math.max(0, blocks.length - 1);
-  const totalH = headerH + PAD + detailsH + GAP + blocksH + PAD + footerH;
+  const gridW = COLS * MAX_W + (COLS - 1) * GAP;
+  const gridH = rowHeights.reduce((a, b) => a + b, 0) + GAP * Math.max(0, rows - 1);
+  const headerH = 70;
+  const totalW = gridW + PAD * 2;
+  const totalH = headerH + PAD + gridH + PAD;
 
   const composites = [
     {
-      input: await sharp(
-        headerSvg(totalW, "مستمسكات الطالب — EMIS", `${fullName || "طالب"} • ${schoolName || "مدرسة قطر"}`)
-      )
+      input: await sharp(detailsSvg(totalW, details, `${fullName || "طالب"} • ${schoolName || "مدرسة قطر"}`))
         .png()
         .toBuffer(),
       top: 0,
       left: 0,
     },
-    {
-      input: detailsBuf,
-      top: headerH + PAD,
-      left: PAD,
-    },
   ];
 
-  let y = headerH + PAD + detailsH + GAP;
-  for (const block of blocks) {
-    composites.push({ input: block.buf, top: y, left: PAD });
-    y += block.height + GAP;
+  let y = headerH + PAD;
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < COLS; c += 1) {
+      const t = tiles[r * COLS + c];
+      if (!t) continue;
+      composites.push({
+        input: t.buf,
+        top: y,
+        left: PAD + c * (MAX_W + GAP),
+      });
+    }
+    y += rowHeights[r] + GAP;
   }
-
-  const stamp = new Date().toLocaleString("ar-IQ", { timeZone: "Asia/Baghdad" });
-  const footer = Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${totalW}" height="${footerH}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100%" height="100%" fill="#0b1f3a"/>
-  <text x="${totalW / 2}" y="32" text-anchor="middle" font-family="Segoe UI, Tahoma, Arial" font-size="15" fill="#9eb0c7">صور كاملة بدون قص • مدرسة قطر • ميسان • ${escapeXml(stamp)}</text>
-</svg>`);
-
-  composites.push({
-    input: await sharp(footer).png().toBuffer(),
-    top: totalH - footerH,
-    left: 0,
-  });
 
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
   const outPath = path.join(outDir, `collage-${Date.now()}.jpg`);
@@ -241,7 +160,7 @@ async function buildDocumentsCollage(files, { fullName, schoolName, outDir, deta
     },
   })
     .composite(composites)
-    .jpeg({ quality: 95, mozjpeg: true })
+    .jpeg({ quality: JPEG_Q, mozjpeg: true })
     .toFile(outPath);
 
   return outPath;

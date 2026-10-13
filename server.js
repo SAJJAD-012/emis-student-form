@@ -352,12 +352,26 @@ app.get("/api/students/:id", (req, res) => {
 });
 
 const recentSubmissionIds = new Map();
+const progressJobs = new Map();
+
+function setProgress(id, percent, status) {
+  const key = String(id || "").trim();
+  if (!key) return;
+  progressJobs.set(key, {
+    percent: Math.max(0, Math.min(99, Math.round(percent))),
+    status,
+    updatedAt: Date.now(),
+  });
+}
 
 function claimSubmissionId(id) {
   const key = String(id || "").trim();
   if (!key) return { ok: true, duplicate: false };
   const prev = recentSubmissionIds.get(key);
-  if (prev) return { ok: false, duplicate: true, saved: prev };
+  if (prev) return { ok: false, duplicate: true, saved: prev.pending ? null : prev };
+  // قفل فوري لمنع الإرسال المزدوج أثناء المعالجة
+  recentSubmissionIds.set(key, { pending: true });
+  setProgress(key, 56, "تم استلام الملفات...");
   return { ok: true, duplicate: false };
 }
 
@@ -365,8 +379,20 @@ function rememberSubmissionId(id, saved) {
   const key = String(id || "").trim();
   if (!key) return;
   recentSubmissionIds.set(key, saved);
-  setTimeout(() => recentSubmissionIds.delete(key), 15 * 60 * 1000);
+  setTimeout(() => {
+    recentSubmissionIds.delete(key);
+    progressJobs.delete(key);
+  }, 15 * 60 * 1000);
 }
+
+app.get("/api/progress/:id", (req, res) => {
+  const job = progressJobs.get(String(req.params.id || ""));
+  res.json({
+    ok: true,
+    percent: job?.percent ?? 55,
+    status: job?.status || "جاري المعالجة على الخادم...",
+  });
+});
 
 app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
   if (!BOT_TOKEN) {
@@ -375,9 +401,10 @@ app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
   }
 
   let collagePath = null;
+  const submissionId = req.body?.submissionId;
 
   try {
-    const claim = claimSubmissionId(req.body?.submissionId);
+    const claim = claimSubmissionId(submissionId);
     if (claim.duplicate) {
       cleanupFiles(req.files);
       return res.json({
@@ -388,12 +415,18 @@ app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
       });
     }
 
+    setProgress(submissionId, 58, "تم استلام الملفات...");
     const chatId = await resolveChatId();
     const b = req.body;
     const fullName = [b.studentName, b.fatherName, b.grandfatherName, b.greatGrandfatherName, b.surname]
       .filter(Boolean)
       .join(" ");
 
+    setProgress(submissionId, 62, "إرسال البيانات الكاملة إلى تيليجرام...");
+    const message = buildFormattedMessage(b, fullName);
+    await sendTelegramMessage(message, chatId);
+
+    setProgress(submissionId, 72, "تجهيز صورة المستمسكات بسرعة...");
     collagePath = await buildDocumentsCollage(req.files, {
       fullName,
       schoolName: b.schoolName || "مدرسة قطر",
@@ -401,26 +434,22 @@ app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
       details: b,
     });
 
+    setProgress(submissionId, 84, "حفظ السجل المحلي...");
     const saved = saveStudentSubmission({
       body: b,
       fullName,
       collagePath,
     });
 
-    // إرسال واحد فقط إلى تيليجرام (ملف المستمسكات + ملخص في التعليق)
-    const caption = `
-🧾 <b>استمارة طالب جديدة</b>
-👤 ${escapeHtml(fullName)}
-🎓 ${escapeHtml(b.grade || "—")} / شعبة ${escapeHtml(b.section || "—")}
-📞 ${escapeHtml(b.phone || "—")}
-🪪 ${escapeHtml(b.nationalId || "—")}
-🏠 ${escapeHtml(b.district || "—")} - ${escapeHtml(b.neighborhood || "—")}
-📁 ${escapeHtml(saved.grade)} / ${escapeHtml(saved.section)}
-`.trim();
+    setProgress(submissionId, 90, "رفع المستمسكات إلى تيليجرام...");
+    await sendTelegramPhoto(
+      collagePath,
+      `🖼 مستمسكات: ${escapeHtml(fullName)} | ${escapeHtml(b.grade || "")} / ${escapeHtml(b.section || "")}`,
+      chatId
+    );
 
-    await sendTelegramPhoto(collagePath, caption, chatId);
-
-    rememberSubmissionId(b.submissionId, {
+    setProgress(submissionId, 99, "اكتمل الإرسال");
+    rememberSubmissionId(submissionId, {
       id: saved.id,
       grade: saved.grade,
       section: saved.section,
@@ -429,7 +458,7 @@ app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
     cleanupFiles(req.files, [collagePath]);
     res.json({
       ok: true,
-      message: "تم الحفظ محلياً وإرسال الاستمارة إلى تيليجرام",
+      message: "تم إرسال البيانات الكاملة والمستمسكات",
       saved: {
         id: saved.id,
         grade: saved.grade,
@@ -439,6 +468,7 @@ app.post("/api/submit", upload.fields(photoFields), async (req, res) => {
   } catch (err) {
     cleanupFiles(req.files, [collagePath]);
     console.error(err);
+    setProgress(submissionId, 55, err.message || "فشل الإرسال");
     res.status(500).json({ ok: false, error: err.message || "حدث خطأ أثناء الإرسال" });
   }
 });
