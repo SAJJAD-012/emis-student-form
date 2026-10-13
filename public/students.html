@@ -7,6 +7,7 @@
   <link rel="icon" href="school-logo.png" type="image/png" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="site-nav.css" />
   <style>
     .wrap { max-width: 1040px; margin: -24px auto 48px; padding: 0 16px; position: relative; z-index: 1; }
     .filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
@@ -99,12 +100,22 @@
   </style>
 </head>
 <body>
+  <nav class="site-nav" aria-label="التنقل الرئيسي">
+    <div class="site-nav-inner">
+      <a class="site-nav-brand" href="/">
+        <img src="school-logo.png" alt="" width="36" height="36" />
+        <span>مدرسة قطر الابتدائية</span>
+      </a>
+      <div class="site-nav-links">
+        <a href="/">الرئيسية</a>
+        <a href="/form">الاستمارة</a>
+        <a href="/students.html" aria-current="page">سجل الطلبة</a>
+        <a href="#" id="logoutLink" class="site-nav-admin">تسجيل الخروج</a>
+      </div>
+    </div>
+  </nav>
   <header class="hero" style="padding-bottom: 40px">
     <div class="hero-inner">
-      <div class="top-links">
-        <a href="/">← العودة للاستمارة</a>
-        <a href="#" id="logoutLink">تسجيل الخروج</a>
-      </div>
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
         <img src="school-logo.png" alt="" width="56" height="56" style="background:#fff;border-radius:12px;padding:4px" />
         <div>

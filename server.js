@@ -138,6 +138,10 @@ app.post("/api/admin/logout", (_req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/form", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "form.html"));
+});
+
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/data-files", express.static(dataRoot));
 
