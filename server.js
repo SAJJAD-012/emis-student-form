@@ -9,6 +9,7 @@ const crypto = require("crypto");
 const { buildDocumentsCollage } = require("./collage");
 const { saveStudentSubmission, listStudents, getStudentById, deleteStudentById, dataRoot, makeRequestId, ensureDirs } = require("./storage");
 const { restoreFromGitHub, syncStudentFiles, deleteStudentFiles } = require("./github-store");
+const { recordVisit, getVisitorStats } = require("./visitors");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -330,6 +331,44 @@ ${row("ملاحظات", b.notes || "لا يوجد")}
 `.trim();
 }
 
+const VISITOR_COOKIE = "emis_visit_day";
+
+function baghdadDayKey() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Baghdad" });
+}
+
+app.get("/api/visitors", async (req, res) => {
+  try {
+    const cookies = parseCookies(req);
+    const today = baghdadDayKey();
+    const already = cookies[VISITOR_COOKIE] === today;
+    const stats = recordVisit(dataRoot, already);
+    if (stats.counted) {
+      const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+      res.setHeader(
+        "Set-Cookie",
+        `${VISITOR_COOKIE}=${encodeURIComponent(today)}; Path=/; SameSite=Lax; Max-Age=172800${secure}`
+      );
+      // مزامنة خفيفة كل 5 زيارات لتجنب ضغط GitHub
+      if (stats.total % 5 === 0) {
+        try {
+          await syncStudentFiles(dataRoot, ["visitors.json"], `visitors-${stats.total}`);
+        } catch (err) {
+          console.warn("مزامنة عداد الزوار:", err.message);
+        }
+      }
+    }
+    res.json({
+      ok: true,
+      total: stats.total,
+      today: stats.today,
+      counted: Boolean(stats.counted),
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.get("/api/status", (_req, res) => {
   res.json({
     ok: true,
@@ -337,6 +376,7 @@ app.get("/api/status", (_req, res) => {
     hasToken: Boolean(BOT_TOKEN),
     hasChatId: Boolean(activeChatId),
     chatId: activeChatId || null,
+    visitors: getVisitorStats(dataRoot).total,
     bot: "@qatar_emis_bot",
   });
 });

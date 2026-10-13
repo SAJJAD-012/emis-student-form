@@ -321,6 +321,25 @@ function initNeuralNet() {
   }
 }
 
+async function trackVisitors() {
+  const totalEl = document.getElementById("visitorTotal");
+  const todayEl = document.getElementById("visitorToday");
+  if (!totalEl && !todayEl) return;
+  try {
+    const res = await fetch("/api/visitors", { credentials: "same-origin" });
+    const data = await res.json();
+    if (!data?.ok) return;
+    const fmt = (n) => Number(n || 0).toLocaleString("ar-IQ");
+    if (totalEl) {
+      totalEl.textContent = fmt(data.total);
+      totalEl.classList.add("visitor-pop");
+    }
+    if (todayEl) todayEl.textContent = fmt(data.today);
+  } catch (_) {
+    if (totalEl) totalEl.textContent = "—";
+  }
+}
+
 document.getElementById("staffSearch")?.addEventListener("input", (e) => {
   renderStaff(e.target.value);
 });
@@ -329,3 +348,4 @@ renderStaff();
 observeReveals();
 setupNavScroll();
 initNeuralNet();
+trackVisitors();

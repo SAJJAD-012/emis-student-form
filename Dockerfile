@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-COPY server.js collage.js storage.js github-store.js ./
+COPY server.js collage.js storage.js github-store.js visitors.js ./
 COPY public ./public
 
 ENV NODE_ENV=production

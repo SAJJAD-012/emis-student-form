@@ -533,9 +533,39 @@ a { color: inherit; }
   max-width: var(--max);
   margin: 0 auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 14px 18px;
+}
+.visitor-badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(94, 200, 255, 0.25);
+  font-size: 0.82rem;
+}
+.visitor-label {
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 600;
+}
+.visitor-badge > strong {
+  display: inline !important;
+  color: #7dd3ff;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 1.5ch;
+}
+.visitor-today {
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 600;
+}
+.visitor-today b {
+  color: #fff;
+  font-weight: 700;
 }
 .site-footer img {
   width: 36px;
@@ -581,6 +611,13 @@ a { color: inherit; }
 @keyframes brainLogoFloat {
   0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.11; }
   50% { transform: translate(-50%, -52%) scale(1.04); opacity: 0.16; }
+}
+.visitor-pop {
+  animation: visitorPop 0.55s var(--ease);
+}
+@keyframes visitorPop {
+  from { transform: scale(0.85); opacity: 0.4; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 @media (max-width: 860px) {
